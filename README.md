@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="logo.svg" alt="VAB Abfahrtsmonitor" width="120"/>
+</p>
+
+<p align="center">
   <a href="https://github.com/mxkissnr/ha-vab-integration/releases/latest">
     <img src="https://img.shields.io/github/v/tag/mxkissnr/ha-vab-integration?color=%2341bdf5&label=Version&style=flat-square" alt="Version"/>
   </a>
