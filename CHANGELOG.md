@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.0 — 2026-06-11
+
+### Added
+- **Options take effect immediately** — adding `update_listener` in `async_setup_entry` so filter/walk-time changes via the options flow reload the coordinator instantly, no HA restart needed ([#12](https://github.com/mxkissnr/ha-vab-integration/issues/12))
+- **Unit tests** — `tests/test_utils.py` (normalize_direction, sort_lines) and `tests/test_coordinator.py` (_apply_filters, _parse_efa, _parse_db) with HA-module stubs so tests run without a full HA install ([#13](https://github.com/mxkissnr/ha-vab-integration/issues/13))
+
+### Changed
+- `CLAUDE.md` extended with full architecture reference, both repo paths, sensor attributes, and card config — usable from any machine without prior session context
+
 ## v1.4.0 — 2026-06-11
 
 ### Changed
