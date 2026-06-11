@@ -14,6 +14,7 @@ from .const import (
     CONF_SOURCE,
     CONF_STOP_ID,
     CONF_STOP_NAME,
+    CONF_WALK_TIME,
     DOMAIN,
     SOURCE_DB,
 )
@@ -60,6 +61,7 @@ class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data or []
         nxt = data[0] if data else None
+        walk_time = self._entry.data.get(CONF_WALK_TIME, 0)
         return {
             # Schnell zugänglich für Templates / Lovelace-Karten
             "next_line": nxt["line"] if nxt else None,
@@ -68,6 +70,7 @@ class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
             "next_delay_minutes": nxt["delay_minutes"] if nxt else None,
             "next_monitored": nxt.get("monitored") if nxt else None,
             "next_rt_status": nxt.get("rt_status") if nxt else None,
+            "leave_in_minutes": nxt.get("leave_in_minutes") if nxt else None,
             # Vollständige Liste aller Abfahrten
             "departures": data,
             # Metadaten
@@ -75,6 +78,7 @@ class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
             "stop_name": self._entry.data[CONF_STOP_NAME],
             "line_filter": self._entry.data.get(CONF_LINE_FILTER, []),
             "direction_filter": self._entry.data.get(CONF_DIRECTION_FILTER, []),
+            "walk_time": walk_time,
             "source": self._entry.data.get(CONF_SOURCE),
         }
 

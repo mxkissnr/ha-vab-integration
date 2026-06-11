@@ -15,6 +15,7 @@ from .const import (
     CONF_MAX_DEPARTURES,
     CONF_SOURCE,
     CONF_STOP_ID,
+    CONF_WALK_TIME,
     DEFAULT_DEPARTURES,
     DOMAIN,
     EFA_BASE_URL,
@@ -47,6 +48,7 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         # Leere Liste = kein Filter (alle zeigen)
         self.line_filter: list[str] = entry.data.get(CONF_LINE_FILTER, [])
         self.direction_filter: list[str] = entry.data.get(CONF_DIRECTION_FILTER, [])
+        self.walk_time: int = entry.data.get(CONF_WALK_TIME, 0)
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         if self.source == SOURCE_DB:
@@ -55,6 +57,9 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             raw = await self._fetch_efa()
 
         result = _apply_filters(raw, self.line_filter, self.direction_filter)[: self.max_departures]
+        if self.walk_time:
+            for dep in result:
+                dep["leave_in_minutes"] = dep["minutes_until"] - self.walk_time
 
         if not result and raw:
             _LOGGER.warning(
@@ -180,6 +185,18 @@ def _apply_filters(
 #  Parser                                                             #
 # ------------------------------------------------------------------ #
 
+def _normalize_direction(direction: str) -> str:
+    """Normalize EFA direction strings — the API uses inconsistent formatting."""
+    import re
+    # "Aschaffenburg ; HBF/ROB" → "HBF/ROB", "Aschaffenburg; HBF/ROB" → "HBF/ROB"
+    # Strip city prefix "Aschaffenburg[,;] " when it's followed by more content
+    direction = re.sub(r'^Aschaffenburg\s*[,;]\s*', '', direction).strip()
+    # Normalize spaces around punctuation: "HBF / ROB" → "HBF/ROB"
+    direction = re.sub(r'\s*/\s*', '/', direction)
+    direction = re.sub(r'\s*;\s*', '; ', direction)
+    return direction
+
+
 def _parse_efa(data: dict) -> list[dict[str, Any]]:
     # `or []` statt Default-Argument, weil die API "departureList": null liefern kann
     # und get() dann None zurückgibt statt des Default-Werts
@@ -192,6 +209,12 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
 
     for dep in raw:
         try:
+            # Skip cancelled departures
+            rt_status = dep.get("realtimeTripStatus", "UNKNOWN")
+            attrs = {a["name"]: a["value"] for a in dep.get("attrs", []) if isinstance(a, dict)}
+            if rt_status == "CANCELLED" or attrs.get("cancelled") == "true":
+                continue
+
             planned = _parse_efa_datetime(dep.get("dateTime", {}))
             realtime = _parse_efa_datetime(dep.get("realDateTime", {}))
             effective = realtime or planned
@@ -199,6 +222,7 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
                 continue
 
             line = dep.get("servingLine", {})
+            direction = _normalize_direction(line.get("direction", ""))
 
             # Delay: EFA liefert es direkt in servingLine.delay (Minuten als String),
             # als Fallback berechnen wir es aus planned vs realDateTime.
@@ -210,8 +234,6 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
             else:
                 delay = 0
 
-            # realtimeTripStatus: "MONITORED" = live getrackt, "PLANNED" = kein Signal
-            rt_status = dep.get("realtimeTripStatus", "UNKNOWN")
             monitored = rt_status == "MONITORED"
 
             minutes_until = int((effective - now).total_seconds() / 60)
@@ -219,7 +241,7 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
             departures.append(
                 {
                     "line": line.get("number") or line.get("symbol", "?"),
-                    "direction": line.get("direction", ""),
+                    "direction": direction,
                     "platform": dep.get("platformName", dep.get("platform", "")),
                     "planned": planned.isoformat() if planned else None,
                     "realtime": realtime.isoformat() if realtime else None,

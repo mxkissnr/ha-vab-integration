@@ -21,7 +21,8 @@
         "description": "Optional: select lines and/or directions for {stop_name}. Leave empty to show all.",
         "data": {
           "line_filter": "Lines (empty = all)",
-          "direction_filter": "Directions (empty = all)"
+          "direction_filter": "Directions (empty = all)",
+          "walk_time": "Walking time to stop (minutes)"
         }
       }
     },
@@ -40,7 +41,8 @@
         "data": {
           "max_departures": "Number of departures to show",
           "line_filter": "Lines (empty = all)",
-          "direction_filter": "Directions (empty = all)"
+          "direction_filter": "Directions (empty = all)",
+          "walk_time": "Walking time to stop (minutes)"
         }
       }
     }

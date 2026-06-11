@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.0 — 2026-06-11
+
+### Added
+- **Walk time** — configure walking time to the stop (0–30 min) in setup and options. Each departure gets a `leave_in_minutes` attribute (`minutes_until - walk_time`). Enables automations: "notify when `leave_in_minutes ≤ 2`" ([#6](https://github.com/mxkissnr/ha-vab-integration/issues/6))
+- **Cancelled departures filtered** — trips with `realtimeTripStatus: CANCELLED` are now skipped ([#8](https://github.com/mxkissnr/ha-vab-integration/issues/8))
+
+### Fixed
+- **Direction normalization** — EFA's inconsistent formatting ("Aschaffenburg ; HBF/ROB", "HBF / ROB", "Hbf/ROB") is now normalized so duplicates no longer appear in the direction filter list ([#7](https://github.com/mxkissnr/ha-vab-integration/issues/7))
+
 ## v1.1.2 — 2026-06-11
 
 ### Changed

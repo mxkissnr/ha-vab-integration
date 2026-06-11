@@ -19,6 +19,7 @@ CONF_MAX_DEPARTURES = "max_departures"
 CONF_SOURCE = "source"
 CONF_LINE_FILTER = "line_filter"       # list[str] – leere Liste = alle Linien
 CONF_DIRECTION_FILTER = "direction_filter"  # list[str] – leere Liste = alle Richtungen
+CONF_WALK_TIME = "walk_time"           # int – Gehminuten zur Haltestelle
 
 DEFAULT_DEPARTURES = 5
 UPDATE_INTERVAL = 60  # seconds

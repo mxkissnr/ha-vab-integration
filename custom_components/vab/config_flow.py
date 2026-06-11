@@ -24,6 +24,7 @@ from .const import (
     CONF_SOURCE,
     CONF_STOP_ID,
     CONF_STOP_NAME,
+    CONF_WALK_TIME,
     DEFAULT_DEPARTURES,
     DOMAIN,
     EFA_BASE_URL,
@@ -154,6 +155,7 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             line_filter: list[str] = user_input.get(CONF_LINE_FILTER, [])
             direction_filter: list[str] = user_input.get(CONF_DIRECTION_FILTER, [])
+            walk_time: int = int(user_input.get(CONF_WALK_TIME, 0))
 
             title = _build_entry_title(
                 self._selected_stop_name, line_filter, direction_filter
@@ -182,6 +184,7 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_SOURCE: self._source,
                     CONF_LINE_FILTER: line_filter,
                     CONF_DIRECTION_FILTER: direction_filter,
+                    CONF_WALK_TIME: walk_time,
                 },
             )
 
@@ -209,8 +212,11 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     mode=SelectSelectorMode.LIST,
                 )
             )
+        schema[vol.Optional(CONF_WALK_TIME, default=0)] = NumberSelector(
+            NumberSelectorConfig(min=0, max=30, step=1, mode=NumberSelectorMode.BOX)
+        )
 
-        if not schema:
+        if not schema or list(schema.keys()) == [list(schema.keys())[-1]]:
             # Keine Live-Daten verfügbar – Sensor ohne Filter anlegen
             return await self.async_step_filters(user_input={})
 
@@ -358,6 +364,7 @@ class VabOptionsFlow(config_entries.OptionsFlow):
             line_filter: list[str] = user_input.get(CONF_LINE_FILTER, [])
             direction_filter: list[str] = user_input.get(CONF_DIRECTION_FILTER, [])
             max_dep = int(user_input.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES))
+            walk_time = int(user_input.get(CONF_WALK_TIME, 0))
 
             new_title = _build_entry_title(
                 self._entry.data[CONF_STOP_NAME], line_filter, direction_filter
@@ -367,7 +374,8 @@ class VabOptionsFlow(config_entries.OptionsFlow):
                 title=new_title,
                 data={**self._entry.data, CONF_LINE_FILTER: line_filter,
                       CONF_DIRECTION_FILTER: direction_filter,
-                      CONF_MAX_DEPARTURES: max_dep},
+                      CONF_MAX_DEPARTURES: max_dep,
+                      CONF_WALK_TIME: walk_time},
             )
             return self.async_create_entry(title=new_title, data={})
 
@@ -376,6 +384,7 @@ class VabOptionsFlow(config_entries.OptionsFlow):
         current_lines = self._entry.data.get(CONF_LINE_FILTER, [])
         current_directions = self._entry.data.get(CONF_DIRECTION_FILTER, [])
         current_max = self._entry.data.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES)
+        current_walk = self._entry.data.get(CONF_WALK_TIME, 0)
 
         line_options = [
             SelectOptionDict(value=ln, label=f"Linie {ln}") for ln in self._available_lines
@@ -403,6 +412,9 @@ class VabOptionsFlow(config_entries.OptionsFlow):
                     )
                 )
             )
+        schema[vol.Optional(CONF_WALK_TIME, default=current_walk)] = NumberSelector(
+            NumberSelectorConfig(min=0, max=30, step=1, mode=NumberSelectorMode.BOX)
+        )
 
         return self.async_show_form(
             step_id="init",

@@ -21,7 +21,8 @@
         "description": "Optional: Wähle Linien und/oder Richtungen für {stop_name}. Keine Auswahl = alle anzeigen.",
         "data": {
           "line_filter": "Linien (leer = alle)",
-          "direction_filter": "Richtungen (leer = alle)"
+          "direction_filter": "Richtungen (leer = alle)",
+          "walk_time": "Gehzeit zur Haltestelle (Minuten)"
         }
       }
     },
@@ -40,7 +41,8 @@
         "data": {
           "max_departures": "Anzahl angezeigter Abfahrten",
           "line_filter": "Linien (leer = alle)",
-          "direction_filter": "Richtungen (leer = alle)"
+          "direction_filter": "Richtungen (leer = alle)",
+          "walk_time": "Gehzeit zur Haltestelle (Minuten)"
         }
       }
     }
