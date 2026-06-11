@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.1 — 2026-06-11
+
+### Fixed
+- Sensor showing **Unknown** when EFA API returns `"departureList": null` — `get()` default was not applied for null values, causing a TypeError in the coordinator ([#1](https://github.com/mxkissnr/ha-vab-integration/issues/1))
+- Added warning log when departures are fetched but all filtered out by line/direction filter, showing available directions to help fix misconfigured filters
+
 ## v1.0.0 — 2026-06-11
 
 ### Added
