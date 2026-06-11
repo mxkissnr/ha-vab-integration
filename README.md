@@ -37,21 +37,39 @@
 
 ### Via HACS (recommended)
 
-1. In Home Assistant go to **HACS → Integrations → ⋮ → Custom repositories**
-2. Add `https://github.com/mxkissnr/ha-vab-integration` as category **Integration**
-3. Search for **VAB Abfahrtsmonitor** and install
-4. Restart Home Assistant
+**Step 1 — Add this repository to HACS:**
 
-### Manual
+<p>
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=mxkissnr&repository=ha-vab-integration&category=integration">
+    <img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open your Home Assistant instance and open a repository inside the Home Assistant Community Store." height="40"/>
+  </a>
+</p>
+
+Or manually: **HACS → Integrations → ⋮ → Custom repositories** → add `https://github.com/mxkissnr/ha-vab-integration` as **Integration**.
+
+After installing via HACS, restart Home Assistant.
+
+**Step 2 — Add the integration:**
+
+<p>
+  <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=vab">
+    <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open your Home Assistant instance and start setting up a new integration." height="40"/>
+  </a>
+</p>
+
+Or manually: **Settings → Integrations → + Add integration → VAB Abfahrtsmonitor**.
+
+### Manual installation
 
 1. Copy `custom_components/vab/` into your HA config directory: `config/custom_components/vab/`
 2. Restart Home Assistant
+3. Add the integration via the button above or **Settings → Integrations → + Add integration**
 
 ---
 
 ## ⚙️ Configuration
 
-Go to **Settings → Integrations → + Add integration → VAB Abfahrtsmonitor**.
+The setup opens automatically after clicking the button above.
 
 The setup has three steps:
 
