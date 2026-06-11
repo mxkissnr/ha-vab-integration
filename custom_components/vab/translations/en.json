@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Search stop",
+        "description": "Choose a data source and enter the name of the stop.",
+        "data": {
+          "source": "Data source",
+          "stop_search": "Stop search"
+        }
+      },
+      "select_stop": {
+        "title": "Select stop",
+        "data": {
+          "stop_id": "Stop",
+          "max_departures": "Number of departures to show"
+        }
+      },
+      "filters": {
+        "title": "Filter lines & directions",
+        "description": "Optional: select lines and/or directions for {stop_name}. Leave empty to show all.",
+        "data": {
+          "line_filter": "Lines (empty = all)",
+          "direction_filter": "Directions (empty = all)"
+        }
+      }
+    },
+    "error": {
+      "no_stops_found": "No stops found. Please try a different search term."
+    },
+    "abort": {
+      "already_configured": "This combination of stop, line and direction is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Settings for {stop_name}",
+        "description": "Adjust lines and directions. Leave empty to show all.",
+        "data": {
+          "max_departures": "Number of departures to show",
+          "line_filter": "Lines (empty = all)",
+          "direction_filter": "Directions (empty = all)"
+        }
+      }
+    }
+  }
+}

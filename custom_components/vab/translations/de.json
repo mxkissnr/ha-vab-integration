@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Haltestelle suchen",
+        "description": "Wähle die Datenquelle und gib den Namen der Haltestelle ein.",
+        "data": {
+          "source": "Datenquelle",
+          "stop_search": "Haltestellen-Suche"
+        }
+      },
+      "select_stop": {
+        "title": "Haltestelle auswählen",
+        "data": {
+          "stop_id": "Haltestelle",
+          "max_departures": "Anzahl angezeigter Abfahrten"
+        }
+      },
+      "filters": {
+        "title": "Linien & Richtungen filtern",
+        "description": "Optional: Wähle Linien und/oder Richtungen für {stop_name}. Keine Auswahl = alle anzeigen.",
+        "data": {
+          "line_filter": "Linien (leer = alle)",
+          "direction_filter": "Richtungen (leer = alle)"
+        }
+      }
+    },
+    "error": {
+      "no_stops_found": "Keine Haltestellen gefunden. Bitte anderen Suchbegriff versuchen."
+    },
+    "abort": {
+      "already_configured": "Diese Kombination aus Haltestelle, Linie und Richtung ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Einstellungen für {stop_name}",
+        "description": "Linien und Richtungen anpassen. Keine Auswahl = alle anzeigen.",
+        "data": {
+          "max_departures": "Anzahl angezeigter Abfahrten",
+          "line_filter": "Linien (leer = alle)",
+          "direction_filter": "Richtungen (leer = alle)"
+        }
+      }
+    }
+  }
+}
