@@ -31,7 +31,10 @@ from .const import (
     EFA_SF_ENDPOINT,
     SOURCE_DB,
     SOURCE_EFA,
+    USER_AGENT,
 )
+
+_HEADERS = {"User-Agent": USER_AGENT}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -237,7 +240,7 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
         try:
             async with session.get(
-                f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}", params=params
+                f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}", params=params, headers=_HEADERS
             ) as resp:
                 resp.raise_for_status()
                 data = await resp.json(content_type=None)
@@ -275,7 +278,7 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
         try:
             async with session.get(
-                f"{EFA_BASE_URL}{EFA_SF_ENDPOINT}", params=params
+                f"{EFA_BASE_URL}{EFA_SF_ENDPOINT}", params=params, headers=_HEADERS
             ) as resp:
                 resp.raise_for_status()
                 data = await resp.json(content_type=None)
@@ -310,7 +313,7 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             async with session.get(
                 "https://marudor.de/api/hafas/v3/stations",
                 params={"searchTerm": query},
-                headers={"Accept": "application/json"},
+                headers={"Accept": "application/json", **_HEADERS},
             ) as resp:
                 resp.raise_for_status()
                 data = await resp.json(content_type=None)
@@ -422,7 +425,7 @@ class VabOptionsFlow(config_entries.OptionsFlow):
         }
         try:
             async with session.get(
-                f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}", params=params
+                f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}", params=params, headers=_HEADERS
             ) as resp:
                 resp.raise_for_status()
                 data = await resp.json(content_type=None)

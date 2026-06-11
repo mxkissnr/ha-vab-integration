@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.2 — 2026-06-11
+
+### Changed
+- All HTTP requests now send a `User-Agent` header identifying the integration — good practice so API operators can see who is querying
+
 ## v1.1.1 — 2026-06-11
 
 ### Fixed

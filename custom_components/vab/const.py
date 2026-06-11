@@ -1,4 +1,5 @@
 DOMAIN = "vab"
+USER_AGENT = "ha-vab-integration/1.1 (https://github.com/mxkissnr/ha-vab-integration)"
 
 # EFA (Bahnland Bayern) – deckt VAB/Aschaffenburg ab
 EFA_BASE_URL = "https://bahnland-bayern.de/efa"

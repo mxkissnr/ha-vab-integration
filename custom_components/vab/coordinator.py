@@ -24,7 +24,10 @@ from .const import (
     SOURCE_DB,
     SOURCE_EFA,
     UPDATE_INTERVAL,
+    USER_AGENT,
 )
+
+_HEADERS = {"User-Agent": USER_AGENT}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,6 +117,7 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             async with session.get(
                 f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}",
                 params=params,
+                headers=_HEADERS,
                 timeout=_timeout(10),
             ) as resp:
                 resp.raise_for_status()
@@ -134,7 +138,7 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 async with session.get(
                     f"{MARUDOR_BASE_URL}{MARUDOR_DEPARTURES_ENDPOINT}/{self.stop_id}",
                     params={"lookahead": lookahead},
-                    headers={"Accept": "application/json"},
+                    headers={"Accept": "application/json", **_HEADERS},
                     timeout=_timeout(10),
                 ) as resp:
                     resp.raise_for_status()
