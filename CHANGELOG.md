@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.0 — 2026-06-11
+
+### Changed
+- **Architecture refactor** — all HTTP calls extracted into `api.py` (`efa_stop_search`, `db_stop_search`, `efa_fetch_raw`, `db_fetch_raw`, `efa_line_directions`); string helpers in `utils.py` (`normalize_direction`, `sort_lines`). Eliminates duplicate `_normalize_direction`/`_normalize_dir` functions and the duplicated `_load_filter_options` method that existed in both `VabConfigFlow` and `VabOptionsFlow` ([#10](https://github.com/mxkissnr/ha-vab-integration/issues/10))
+- `config_flow.py` now uses limit=60 (was 30) when fetching lines/directions for the setup wizard — consistent with the options flow
+
 ## v1.3.0 — 2026-06-11
 
 ### Changed

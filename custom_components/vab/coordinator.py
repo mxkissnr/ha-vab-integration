@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import logging
 from typing import Any
 
@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .api import db_fetch_raw, efa_fetch_raw
 from .const import (
     CONF_DIRECTION_FILTER,
     CONF_LINE_FILTER,
@@ -18,17 +19,11 @@ from .const import (
     CONF_WALK_TIME,
     DEFAULT_DEPARTURES,
     DOMAIN,
-    EFA_BASE_URL,
-    EFA_DM_ENDPOINT,
-    MARUDOR_BASE_URL,
-    MARUDOR_DEPARTURES_ENDPOINT,
     SOURCE_DB,
     SOURCE_EFA,
     UPDATE_INTERVAL,
-    USER_AGENT,
 )
-
-_HEADERS = {"User-Agent": USER_AGENT}
+from .utils import normalize_direction
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +40,6 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         self.stop_id: str = entry.data[CONF_STOP_ID]
         self.source: str = entry.data.get(CONF_SOURCE, SOURCE_EFA)
         self.max_departures: int = entry.data.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES)
-        # Leere Liste = kein Filter (alle zeigen)
         self.line_filter: list[str] = entry.data.get(CONF_LINE_FILTER, [])
         self.direction_filter: list[str] = entry.data.get(CONF_DIRECTION_FILTER, [])
         self.walk_time: int = entry.data.get(CONF_WALK_TIME, 0)
@@ -75,90 +69,46 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
 
         return result
 
-    # ------------------------------------------------------------------ #
-    #  EFA (Bus / Tram)                                                   #
-    # ------------------------------------------------------------------ #
-
     async def _fetch_efa(self) -> list[dict[str, Any]]:
-        fetch_limit = max(self.max_departures * 4, 30)
-        raw = await self._request_efa(fetch_limit)
-        if not raw:
-            # Keine Abfahrten im aktuellen Zeitfenster — nächsten Tag abfragen.
-            # Grosses Limit damit belebte Haltestellen mit vielen Linien
-            # auch die gesuchte Linie noch im Ergebnis haben.
-            from datetime import date, timedelta
-            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
-            raw = await self._request_efa(100, itd_date=tomorrow, itd_time="0000")
-        if not raw:
-            # Zweiter Versuch ab 05:00 falls Mitternachts-Fetch leer bleibt
-            from datetime import date, timedelta
-            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
-            raw = await self._request_efa(100, itd_date=tomorrow, itd_time="0500")
-        return raw
-
-    async def _request_efa(
-        self,
-        fetch_limit: int,
-        itd_date: str | None = None,
-        itd_time: str | None = None,
-    ) -> list[dict[str, Any]]:
         session = async_get_clientsession(self.hass)
-        params: dict[str, str] = {
-            "outputFormat": "JSON",
-            "language": "de",
-            "type_dm": "stop",
-            "name_dm": self.stop_id,
-            "useRealtime": "1",
-            "limit": str(fetch_limit),
-            "mode": "direct",
-            "deleteAssignedStops": "1",
-            "ptOptionsActive": "1",
-        }
-        if itd_date:
-            params["itdDate"] = itd_date
-        if itd_time:
-            params["itdTime"] = itd_time
+        fetch_limit = max(self.max_departures * 4, 30)
         try:
-            async with session.get(
-                f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}",
-                params=params,
-                headers=_HEADERS,
-                timeout=_timeout(10),
-            ) as resp:
-                resp.raise_for_status()
-                data = await resp.json(content_type=None)
+            raw_list = await efa_fetch_raw(session, self.stop_id, fetch_limit)
         except Exception as err:
             raise UpdateFailed(f"EFA-Fehler: {err}") from err
-        return _parse_efa(data)
 
-    # ------------------------------------------------------------------ #
-    #  DB / IRIS (Züge)                                                   #
-    # ------------------------------------------------------------------ #
+        if not raw_list:
+            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
+            try:
+                raw_list = await efa_fetch_raw(session, self.stop_id, 100, itd_date=tomorrow, itd_time="0000")
+            except Exception as err:
+                raise UpdateFailed(f"EFA-Fehler (overnight): {err}") from err
+
+        if not raw_list:
+            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
+            try:
+                raw_list = await efa_fetch_raw(session, self.stop_id, 100, itd_date=tomorrow, itd_time="0500")
+            except Exception as err:
+                raise UpdateFailed(f"EFA-Fehler (05:00 retry): {err}") from err
+
+        return _parse_efa(raw_list)
 
     async def _fetch_db(self) -> list[dict[str, Any]]:
         session = async_get_clientsession(self.hass)
-        # 480 min Lookahead damit auch nächtliche Lücken überbrückt werden
-        for lookahead in ("480", "1440"):
+        for lookahead in (480, 1440):
             try:
-                async with session.get(
-                    f"{MARUDOR_BASE_URL}{MARUDOR_DEPARTURES_ENDPOINT}/{self.stop_id}",
-                    params={"lookahead": lookahead},
-                    headers={"Accept": "application/json", **_HEADERS},
-                    timeout=_timeout(10),
-                ) as resp:
-                    resp.raise_for_status()
-                    data = await resp.json(content_type=None)
+                raw_list = await db_fetch_raw(session, self.stop_id, lookahead)
             except Exception as err:
                 raise UpdateFailed(f"DB/IRIS-Fehler: {err}") from err
-            result = _parse_db(data)
+            result = _parse_db(raw_list)
             if result:
                 return result
         return []
 
 
-# ------------------------------------------------------------------ #
-#  Filter                                                             #
-# ------------------------------------------------------------------ #
+# ──────────────────────────────────────────────────────────────────────────────
+#  Filters
+# ──────────────────────────────────────────────────────────────────────────────
 
 def _apply_filters(
     departures: list[dict[str, Any]],
@@ -168,48 +118,24 @@ def _apply_filters(
     if line_filter:
         departures = [d for d in departures if d.get("line") in line_filter]
     if direction_filter:
-        # Teilstring-Match (case-insensitiv) damit Varianten wie
-        # "Aschaffenburg, Hauptbahnhof" auf "Hauptbahnhof" matchen
         departures = [
             d
             for d in departures
-            if any(
-                f.lower() in d.get("direction", "").lower()
-                for f in direction_filter
-            )
+            if any(f.lower() in d.get("direction", "").lower() for f in direction_filter)
         ]
     return departures
 
 
-# ------------------------------------------------------------------ #
-#  Parser                                                             #
-# ------------------------------------------------------------------ #
+# ──────────────────────────────────────────────────────────────────────────────
+#  Parsers
+# ──────────────────────────────────────────────────────────────────────────────
 
-def _normalize_direction(direction: str) -> str:
-    """Normalize EFA direction strings — the API uses inconsistent formatting."""
-    import re
-    # "Aschaffenburg ; HBF/ROB" → "HBF/ROB", "Aschaffenburg; HBF/ROB" → "HBF/ROB"
-    # Strip city prefix "Aschaffenburg[,;] " when it's followed by more content
-    direction = re.sub(r'^Aschaffenburg\s*[,;]\s*', '', direction).strip()
-    # Normalize spaces around punctuation: "HBF / ROB" → "HBF/ROB"
-    direction = re.sub(r'\s*/\s*', '/', direction)
-    direction = re.sub(r'\s*;\s*', '; ', direction)
-    return direction
-
-
-def _parse_efa(data: dict) -> list[dict[str, Any]]:
-    # `or []` statt Default-Argument, weil die API "departureList": null liefern kann
-    # und get() dann None zurückgibt statt des Default-Werts
-    raw = data.get("departureList") or []
-    if isinstance(raw, dict):
-        raw = [raw]
-
+def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
     now = datetime.now()
     departures: list[dict[str, Any]] = []
 
     for dep in raw:
         try:
-            # Skip cancelled departures
             rt_status = dep.get("realtimeTripStatus", "UNKNOWN")
             attrs = {a["name"]: a["value"] for a in dep.get("attrs", []) if isinstance(a, dict)}
             if rt_status == "CANCELLED" or attrs.get("cancelled") == "true":
@@ -222,10 +148,8 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
                 continue
 
             line = dep.get("servingLine", {})
-            direction = _normalize_direction(line.get("direction", ""))
+            direction = normalize_direction(line.get("direction", ""))
 
-            # Delay: EFA liefert es direkt in servingLine.delay (Minuten als String),
-            # als Fallback berechnen wir es aus planned vs realDateTime.
             raw_delay = line.get("delay")
             if raw_delay is not None:
                 delay = int(raw_delay)
@@ -234,25 +158,21 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
             else:
                 delay = 0
 
-            monitored = rt_status == "MONITORED"
-
             minutes_until = int((effective - now).total_seconds() / 60)
 
-            departures.append(
-                {
-                    "line": line.get("number") or line.get("symbol", "?"),
-                    "direction": direction,
-                    "platform": dep.get("platformName", dep.get("platform", "")),
-                    "planned": planned.isoformat() if planned else None,
-                    "realtime": realtime.isoformat() if realtime else None,
-                    "effective": effective.isoformat(),
-                    "delay_minutes": delay,
-                    "minutes_until": minutes_until,
-                    "monitored": monitored,
-                    "rt_status": rt_status,
-                    "source": SOURCE_EFA,
-                }
-            )
+            departures.append({
+                "line": line.get("number") or line.get("symbol", "?"),
+                "direction": direction,
+                "platform": dep.get("platformName", dep.get("platform", "")),
+                "planned": planned.isoformat() if planned else None,
+                "realtime": realtime.isoformat() if realtime else None,
+                "effective": effective.isoformat(),
+                "delay_minutes": delay,
+                "minutes_until": minutes_until,
+                "monitored": rt_status == "MONITORED",
+                "rt_status": rt_status,
+                "source": SOURCE_EFA,
+            })
         except (KeyError, ValueError, TypeError):
             continue
 
@@ -261,11 +181,11 @@ def _parse_efa(data: dict) -> list[dict[str, Any]]:
     return departures
 
 
-def _parse_db(data: dict) -> list[dict[str, Any]]:
+def _parse_db(raw: list[dict]) -> list[dict[str, Any]]:
     now = datetime.now()
     departures: list[dict[str, Any]] = []
 
-    for dep in data.get("departures", []):
+    for dep in raw:
         try:
             time_info = dep.get("departure", dep)
             planned = _parse_iso_ms(time_info.get("scheduledTime"))
@@ -281,19 +201,17 @@ def _parse_db(data: dict) -> list[dict[str, Any]]:
             minutes_until = int((effective - now).total_seconds() / 60)
             train = dep.get("train", {})
 
-            departures.append(
-                {
-                    "line": train.get("number", "?"),
-                    "direction": dep.get("destination", ""),
-                    "planned": planned.isoformat() if planned else None,
-                    "realtime": realtime.isoformat() if realtime else None,
-                    "effective": effective.isoformat(),
-                    "delay_minutes": delay,
-                    "minutes_until": minutes_until,
-                    "is_realtime": realtime is not None,
-                    "source": SOURCE_DB,
-                }
-            )
+            departures.append({
+                "line": train.get("number", "?"),
+                "direction": dep.get("destination", ""),
+                "planned": planned.isoformat() if planned else None,
+                "realtime": realtime.isoformat() if realtime else None,
+                "effective": effective.isoformat(),
+                "delay_minutes": delay,
+                "minutes_until": minutes_until,
+                "is_realtime": realtime is not None,
+                "source": SOURCE_DB,
+            })
         except (KeyError, ValueError, TypeError):
             continue
 
@@ -302,9 +220,9 @@ def _parse_db(data: dict) -> list[dict[str, Any]]:
     return departures
 
 
-# ------------------------------------------------------------------ #
-#  Zeithelfer                                                         #
-# ------------------------------------------------------------------ #
+# ──────────────────────────────────────────────────────────────────────────────
+#  Datetime helpers
+# ──────────────────────────────────────────────────────────────────────────────
 
 def _parse_efa_datetime(dt: dict) -> datetime | None:
     if not dt or not dt.get("year"):
@@ -330,8 +248,3 @@ def _parse_iso_ms(value: str | int | None) -> datetime | None:
         return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except (ValueError, OSError):
         return None
-
-
-def _timeout(seconds: int):
-    import aiohttp
-    return aiohttp.ClientTimeout(total=seconds)
