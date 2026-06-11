@@ -245,7 +245,7 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("Konnte Filteroptionen nicht laden: %s", err)
             return
 
-        raw = data.get("departureList", [])
+        raw = data.get("departureList") or []
         if isinstance(raw, dict):
             raw = [raw]
 
@@ -430,7 +430,7 @@ class VabOptionsFlow(config_entries.OptionsFlow):
             _LOGGER.warning("OptionsFlow: Filteroptionen nicht ladbar: %s", err)
             return
 
-        raw = data.get("departureList", [])
+        raw = data.get("departureList") or []
         if isinstance(raw, dict):
             raw = [raw]
 

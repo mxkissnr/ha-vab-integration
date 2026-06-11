@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.2 — 2026-06-11
+
+### Fixed
+- Options flow and step 3 filter selectors not appearing when EFA API returns `"departureList": null` — same null-bug as #1 was also present in both `_load_filter_options` methods in `config_flow.py`, causing a TypeError that silently left the available lines/directions empty ([#3](https://github.com/mxkissnr/ha-vab-integration/issues/3))
+
 ## v1.0.1 — 2026-06-11
 
 ### Fixed
