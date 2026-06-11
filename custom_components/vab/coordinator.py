@@ -75,11 +75,17 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         fetch_limit = max(self.max_departures * 4, 30)
         raw = await self._request_efa(fetch_limit)
         if not raw:
-            # Keine Abfahrten im aktuellen Zeitfenster (z.B. nachts) —
-            # nächsten Tag ab 00:00 abfragen damit immer die nächste Abfahrt sichtbar ist
+            # Keine Abfahrten im aktuellen Zeitfenster — nächsten Tag abfragen.
+            # Grosses Limit damit belebte Haltestellen mit vielen Linien
+            # auch die gesuchte Linie noch im Ergebnis haben.
             from datetime import date, timedelta
             tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
-            raw = await self._request_efa(fetch_limit, itd_date=tomorrow, itd_time="0000")
+            raw = await self._request_efa(100, itd_date=tomorrow, itd_time="0000")
+        if not raw:
+            # Zweiter Versuch ab 05:00 falls Mitternachts-Fetch leer bleibt
+            from datetime import date, timedelta
+            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
+            raw = await self._request_efa(100, itd_date=tomorrow, itd_time="0500")
         return raw
 
     async def _request_efa(

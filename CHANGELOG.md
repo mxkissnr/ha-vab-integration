@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.1 — 2026-06-11
+
+### Fixed
+- Overnight lookahead: fetch limit increased to 100 (was 30) so busy stops with many lines still find the filtered line in the result; added second retry at 05:00 if midnight fetch is empty ([#4](https://github.com/mxkissnr/ha-vab-integration/issues/4))
+
 ## v1.1.0 — 2026-06-11
 
 ### Added
