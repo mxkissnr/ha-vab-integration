@@ -50,7 +50,22 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             raw = await self._fetch_db()
         else:
             raw = await self._fetch_efa()
-        return _apply_filters(raw, self.line_filter, self.direction_filter)[: self.max_departures]
+
+        result = _apply_filters(raw, self.line_filter, self.direction_filter)[: self.max_departures]
+
+        if not result and raw:
+            _LOGGER.warning(
+                "Stop %s: %d departures fetched but all filtered out "
+                "(line_filter=%s, direction_filter=%s). "
+                "Available directions: %s",
+                self.stop_id,
+                len(raw),
+                self.line_filter,
+                self.direction_filter,
+                sorted({d["direction"] for d in raw}),
+            )
+
+        return result
 
     # ------------------------------------------------------------------ #
     #  EFA (Bus / Tram)                                                   #
@@ -135,7 +150,9 @@ def _apply_filters(
 # ------------------------------------------------------------------ #
 
 def _parse_efa(data: dict) -> list[dict[str, Any]]:
-    raw = data.get("departureList", [])
+    # `or []` statt Default-Argument, weil die API "departureList": null liefern kann
+    # und get() dann None zurückgibt statt des Default-Werts
+    raw = data.get("departureList") or []
     if isinstance(raw, dict):
         raw = [raw]
 
