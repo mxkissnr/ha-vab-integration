@@ -5,6 +5,7 @@
   <img src="https://img.shields.io/badge/Home%20Assistant-Custom%20Integration-41bdf5?logo=home-assistant&style=flat-square" alt="HA Integration"/>
   <img src="https://img.shields.io/badge/HACS-Custom-orange?style=flat-square" alt="HACS Custom"/>
   <img src="https://img.shields.io/badge/Built%20with-Claude%20by%20Anthropic-D97706?style=flat-square" alt="Built with Claude"/>
+  <img src="https://img.shields.io/badge/status-Work%20In%20Progress-orange?style=flat-square" alt="Work In Progress"/>
   <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License GPL-3.0"/>
 </p>
 
