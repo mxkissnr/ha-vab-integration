@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0 — 2026-06-11
+
+### Added
+- Overnight lookahead for EFA: when no departures are found for the current time window (e.g. after the last bus at night), the coordinator automatically retries with the next day's schedule so the sensor always shows when the next bus comes ([#4](https://github.com/mxkissnr/ha-vab-integration/issues/4))
+- DB/IRIS: extended lookahead to 480 min (was 120), with automatic retry at 1440 min if still empty
+
 ## v1.0.2 — 2026-06-11
 
 ### Fixed

@@ -72,10 +72,24 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     # ------------------------------------------------------------------ #
 
     async def _fetch_efa(self) -> list[dict[str, Any]]:
-        session = async_get_clientsession(self.hass)
-        # Mehr abrufen als benötigt, damit Filter genug übrig lässt
         fetch_limit = max(self.max_departures * 4, 30)
-        params = {
+        raw = await self._request_efa(fetch_limit)
+        if not raw:
+            # Keine Abfahrten im aktuellen Zeitfenster (z.B. nachts) —
+            # nächsten Tag ab 00:00 abfragen damit immer die nächste Abfahrt sichtbar ist
+            from datetime import date, timedelta
+            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
+            raw = await self._request_efa(fetch_limit, itd_date=tomorrow, itd_time="0000")
+        return raw
+
+    async def _request_efa(
+        self,
+        fetch_limit: int,
+        itd_date: str | None = None,
+        itd_time: str | None = None,
+    ) -> list[dict[str, Any]]:
+        session = async_get_clientsession(self.hass)
+        params: dict[str, str] = {
             "outputFormat": "JSON",
             "language": "de",
             "type_dm": "stop",
@@ -86,6 +100,10 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             "deleteAssignedStops": "1",
             "ptOptionsActive": "1",
         }
+        if itd_date:
+            params["itdDate"] = itd_date
+        if itd_time:
+            params["itdTime"] = itd_time
         try:
             async with session.get(
                 f"{EFA_BASE_URL}{EFA_DM_ENDPOINT}",
@@ -96,7 +114,6 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 data = await resp.json(content_type=None)
         except Exception as err:
             raise UpdateFailed(f"EFA-Fehler: {err}") from err
-
         return _parse_efa(data)
 
     # ------------------------------------------------------------------ #
@@ -105,19 +122,23 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
 
     async def _fetch_db(self) -> list[dict[str, Any]]:
         session = async_get_clientsession(self.hass)
-        try:
-            async with session.get(
-                f"{MARUDOR_BASE_URL}{MARUDOR_DEPARTURES_ENDPOINT}/{self.stop_id}",
-                params={"lookahead": "120"},
-                headers={"Accept": "application/json"},
-                timeout=_timeout(10),
-            ) as resp:
-                resp.raise_for_status()
-                data = await resp.json(content_type=None)
-        except Exception as err:
-            raise UpdateFailed(f"DB/IRIS-Fehler: {err}") from err
-
-        return _parse_db(data)
+        # 480 min Lookahead damit auch nächtliche Lücken überbrückt werden
+        for lookahead in ("480", "1440"):
+            try:
+                async with session.get(
+                    f"{MARUDOR_BASE_URL}{MARUDOR_DEPARTURES_ENDPOINT}/{self.stop_id}",
+                    params={"lookahead": lookahead},
+                    headers={"Accept": "application/json"},
+                    timeout=_timeout(10),
+                ) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json(content_type=None)
+            except Exception as err:
+                raise UpdateFailed(f"DB/IRIS-Fehler: {err}") from err
+            result = _parse_db(data)
+            if result:
+                return result
+        return []
 
 
 # ------------------------------------------------------------------ #
