@@ -17,12 +17,18 @@
         }
       },
       "filters": {
-        "title": "Filter lines & directions",
-        "description": "Optional: select lines and/or directions for {stop_name}. Leave empty to show all.",
+        "title": "Filter lines",
+        "description": "Optional: select lines for {stop_name}. The next step shows only directions served by these lines.",
         "data": {
           "line_filter": "Lines (empty = all)",
-          "direction_filter": "Directions (empty = all)",
           "walk_time": "Walking time to stop (minutes)"
+        }
+      },
+      "directions": {
+        "title": "Filter directions",
+        "description": "Only directions served by the selected lines at {stop_name}. Leave empty to show all directions.",
+        "data": {
+          "direction_filter": "Directions (empty = all)"
         }
       }
     },
@@ -37,12 +43,18 @@
     "step": {
       "init": {
         "title": "Settings for {stop_name}",
-        "description": "Adjust lines and directions. Leave empty to show all.",
+        "description": "Select lines. The next step shows only directions for those lines.",
         "data": {
           "max_departures": "Number of departures to show",
           "line_filter": "Lines (empty = all)",
-          "direction_filter": "Directions (empty = all)",
           "walk_time": "Walking time to stop (minutes)"
+        }
+      },
+      "directions": {
+        "title": "Directions for {stop_name}",
+        "description": "Only directions served by the selected lines. Leave empty to show all.",
+        "data": {
+          "direction_filter": "Directions (empty = all)"
         }
       }
     }

@@ -60,8 +60,10 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._selected_stop_id: str = ""
         self._selected_stop_name: str = ""
         self._max_departures: int = DEFAULT_DEPARTURES
+        self._walk_time: int = 0
         self._available_lines: list[str] = []
-        self._available_directions: list[str] = []
+        self._line_directions: dict[str, list[str]] = {}  # line → sorted directions
+        self._selected_lines: list[str] = []
 
     # ------------------------------------------------------------------ #
     #  Schritt 1 – Datenquelle + Haltestellensuche                        #
@@ -146,32 +148,55 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     # ------------------------------------------------------------------ #
-    #  Schritt 3 – Linien- und Richtungsfilter                            #
+    #  Schritt 3 – Linienfilter + Gehzeit                                 #
     # ------------------------------------------------------------------ #
 
     async def async_step_filters(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         if user_input is not None:
-            line_filter: list[str] = user_input.get(CONF_LINE_FILTER, [])
+            self._selected_lines = user_input.get(CONF_LINE_FILTER, [])
+            self._walk_time = int(user_input.get(CONF_WALK_TIME, 0))
+            return await self.async_step_directions()
+
+        line_options = [
+            SelectOptionDict(value=ln, label=f"Linie {ln}") for ln in self._available_lines
+        ]
+        schema: dict = {}
+        if line_options:
+            schema[vol.Optional(CONF_LINE_FILTER, default=[])] = SelectSelector(
+                SelectSelectorConfig(options=line_options, multiple=True, mode=SelectSelectorMode.LIST)
+            )
+        schema[vol.Optional(CONF_WALK_TIME, default=0)] = NumberSelector(
+            NumberSelectorConfig(min=0, max=30, step=1, mode=NumberSelectorMode.BOX)
+        )
+
+        if not self._available_lines:
+            return await self.async_step_filters(user_input={})
+
+        return self.async_show_form(
+            step_id="filters",
+            data_schema=vol.Schema(schema),
+            description_placeholders={"stop_name": self._selected_stop_name},
+        )
+
+    # ------------------------------------------------------------------ #
+    #  Schritt 4 – Richtungsfilter (gefiltert nach Linienauswahl)         #
+    # ------------------------------------------------------------------ #
+
+    async def async_step_directions(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        if user_input is not None:
             direction_filter: list[str] = user_input.get(CONF_DIRECTION_FILTER, [])
-            walk_time: int = int(user_input.get(CONF_WALK_TIME, 0))
+            line_filter = self._selected_lines
 
-            title = _build_entry_title(
-                self._selected_stop_name, line_filter, direction_filter
-            )
-
-            unique_id = "_".join(
-                filter(
-                    None,
-                    [
-                        self._source,
-                        self._selected_stop_id,
-                        ",".join(sorted(line_filter)),
-                        ",".join(sorted(direction_filter)),
-                    ],
-                )
-            )
+            title = _build_entry_title(self._selected_stop_name, line_filter, direction_filter)
+            unique_id = "_".join(filter(None, [
+                self._source, self._selected_stop_id,
+                ",".join(sorted(line_filter)),
+                ",".join(sorted(direction_filter)),
+            ]))
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
@@ -184,45 +209,31 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_SOURCE: self._source,
                     CONF_LINE_FILTER: line_filter,
                     CONF_DIRECTION_FILTER: direction_filter,
-                    CONF_WALK_TIME: walk_time,
+                    CONF_WALK_TIME: self._walk_time,
                 },
             )
 
-        line_options = [
-            SelectOptionDict(value=ln, label=f"Linie {ln}") for ln in self._available_lines
-        ]
-        direction_options = [
-            SelectOptionDict(value=d, label=d) for d in self._available_directions
-        ]
+        # Richtungen auf die gewählten Linien einschränken
+        if self._selected_lines:
+            relevant = set()
+            for ln in self._selected_lines:
+                relevant.update(self._line_directions.get(ln, []))
+            direction_list = sorted(relevant)
+        else:
+            direction_list = sorted({d for dirs in self._line_directions.values() for d in dirs})
 
-        schema: dict = {}
-        if line_options:
-            schema[vol.Optional(CONF_LINE_FILTER, default=[])] = SelectSelector(
-                SelectSelectorConfig(
-                    options=line_options,
-                    multiple=True,
-                    mode=SelectSelectorMode.LIST,
-                )
-            )
-        if direction_options:
-            schema[vol.Optional(CONF_DIRECTION_FILTER, default=[])] = SelectSelector(
-                SelectSelectorConfig(
-                    options=direction_options,
-                    multiple=True,
-                    mode=SelectSelectorMode.LIST,
-                )
-            )
-        schema[vol.Optional(CONF_WALK_TIME, default=0)] = NumberSelector(
-            NumberSelectorConfig(min=0, max=30, step=1, mode=NumberSelectorMode.BOX)
-        )
+        direction_options = [SelectOptionDict(value=d, label=d) for d in direction_list]
 
-        if not schema or list(schema.keys()) == [list(schema.keys())[-1]]:
-            # Keine Live-Daten verfügbar – Sensor ohne Filter anlegen
-            return await self.async_step_filters(user_input={})
+        if not direction_options:
+            return await self.async_step_directions(user_input={})
 
         return self.async_show_form(
-            step_id="filters",
-            data_schema=vol.Schema(schema),
+            step_id="directions",
+            data_schema=vol.Schema({
+                vol.Optional(CONF_DIRECTION_FILTER, default=[]): SelectSelector(
+                    SelectSelectorConfig(options=direction_options, multiple=True, mode=SelectSelectorMode.LIST)
+                )
+            }),
             description_placeholders={"stop_name": self._selected_stop_name},
         )
 
@@ -258,19 +269,18 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if isinstance(raw, dict):
             raw = [raw]
 
-        lines: set[str] = set()
-        directions: set[str] = set()
+        line_dirs: dict[str, set[str]] = {}
         for dep in raw:
             line_info = dep.get("servingLine", {})
-            ln = line_info.get("number") or line_info.get("symbol", "")
-            direction = line_info.get("direction", "")
+            ln = (line_info.get("number") or line_info.get("symbol", "")).strip()
+            direction = _normalize_dir(line_info.get("direction", ""))
             if ln:
-                lines.add(ln.strip())
-            if direction:
-                directions.add(direction.strip())
+                line_dirs.setdefault(ln, set())
+                if direction:
+                    line_dirs[ln].add(direction)
 
-        self._available_lines = sorted(lines, key=lambda x: (not x.isdigit(), x))
-        self._available_directions = sorted(directions)
+        self._available_lines = sorted(line_dirs.keys(), key=lambda x: (not x.isdigit(), x))
+        self._line_directions = {ln: sorted(dirs) for ln, dirs in line_dirs.items()}
 
     async def _search_efa_stops(self, query: str) -> list[dict[str, str]]:
         session = async_get_clientsession(self.hass)
@@ -336,6 +346,14 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return stops
 
 
+def _normalize_dir(direction: str) -> str:
+    import re
+    direction = re.sub(r'^Aschaffenburg\s*[,;]\s*', '', direction).strip()
+    direction = re.sub(r'\s*/\s*', '/', direction)
+    direction = re.sub(r'\s*;\s*', '; ', direction)
+    return direction
+
+
 def _build_entry_title(
     stop_name: str,
     line_filter: list[str],
@@ -355,44 +373,29 @@ class VabOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, entry: config_entries.ConfigEntry) -> None:
         self._entry = entry
         self._available_lines: list[str] = []
-        self._available_directions: list[str] = []
+        self._line_directions: dict[str, list[str]] = {}
+        self._selected_lines: list[str] = []
+        self._max_dep: int = DEFAULT_DEPARTURES
+        self._walk_time: int = 0
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         if user_input is not None:
-            line_filter: list[str] = user_input.get(CONF_LINE_FILTER, [])
-            direction_filter: list[str] = user_input.get(CONF_DIRECTION_FILTER, [])
-            max_dep = int(user_input.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES))
-            walk_time = int(user_input.get(CONF_WALK_TIME, 0))
-
-            new_title = _build_entry_title(
-                self._entry.data[CONF_STOP_NAME], line_filter, direction_filter
-            )
-            self.hass.config_entries.async_update_entry(
-                self._entry,
-                title=new_title,
-                data={**self._entry.data, CONF_LINE_FILTER: line_filter,
-                      CONF_DIRECTION_FILTER: direction_filter,
-                      CONF_MAX_DEPARTURES: max_dep,
-                      CONF_WALK_TIME: walk_time},
-            )
-            return self.async_create_entry(title=new_title, data={})
+            self._selected_lines = user_input.get(CONF_LINE_FILTER, [])
+            self._max_dep = int(user_input.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES))
+            self._walk_time = int(user_input.get(CONF_WALK_TIME, 0))
+            return await self.async_step_directions()
 
         await self._load_filter_options()
 
         current_lines = self._entry.data.get(CONF_LINE_FILTER, [])
-        current_directions = self._entry.data.get(CONF_DIRECTION_FILTER, [])
         current_max = self._entry.data.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES)
         current_walk = self._entry.data.get(CONF_WALK_TIME, 0)
 
         line_options = [
             SelectOptionDict(value=ln, label=f"Linie {ln}") for ln in self._available_lines
         ]
-        direction_options = [
-            SelectOptionDict(value=d, label=d) for d in self._available_directions
-        ]
-
         schema: dict = {
             vol.Optional(CONF_MAX_DEPARTURES, default=current_max): NumberSelector(
                 NumberSelectorConfig(min=1, max=20, step=1, mode=NumberSelectorMode.BOX)
@@ -400,17 +403,7 @@ class VabOptionsFlow(config_entries.OptionsFlow):
         }
         if line_options:
             schema[vol.Optional(CONF_LINE_FILTER, default=current_lines)] = SelectSelector(
-                SelectSelectorConfig(
-                    options=line_options, multiple=True, mode=SelectSelectorMode.LIST
-                )
-            )
-        if direction_options:
-            schema[vol.Optional(CONF_DIRECTION_FILTER, default=current_directions)] = (
-                SelectSelector(
-                    SelectSelectorConfig(
-                        options=direction_options, multiple=True, mode=SelectSelectorMode.LIST
-                    )
-                )
+                SelectSelectorConfig(options=line_options, multiple=True, mode=SelectSelectorMode.LIST)
             )
         schema[vol.Optional(CONF_WALK_TIME, default=current_walk)] = NumberSelector(
             NumberSelectorConfig(min=0, max=30, step=1, mode=NumberSelectorMode.BOX)
@@ -422,6 +415,53 @@ class VabOptionsFlow(config_entries.OptionsFlow):
             description_placeholders={"stop_name": self._entry.data[CONF_STOP_NAME]},
         )
 
+    async def async_step_directions(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        if user_input is not None:
+            direction_filter: list[str] = user_input.get(CONF_DIRECTION_FILTER, [])
+            new_title = _build_entry_title(
+                self._entry.data[CONF_STOP_NAME], self._selected_lines, direction_filter
+            )
+            self.hass.config_entries.async_update_entry(
+                self._entry,
+                title=new_title,
+                data={
+                    **self._entry.data,
+                    CONF_LINE_FILTER: self._selected_lines,
+                    CONF_DIRECTION_FILTER: direction_filter,
+                    CONF_MAX_DEPARTURES: self._max_dep,
+                    CONF_WALK_TIME: self._walk_time,
+                },
+            )
+            return self.async_create_entry(title=new_title, data={})
+
+        if self._selected_lines:
+            relevant = set()
+            for ln in self._selected_lines:
+                relevant.update(self._line_directions.get(ln, []))
+            direction_list = sorted(relevant)
+        else:
+            direction_list = sorted({d for dirs in self._line_directions.values() for d in dirs})
+
+        direction_options = [SelectOptionDict(value=d, label=d) for d in direction_list]
+        current_directions = self._entry.data.get(CONF_DIRECTION_FILTER, [])
+        # Keep only currently selected directions that are still valid options
+        valid_current = [d for d in current_directions if d in direction_list]
+
+        if not direction_options:
+            return await self.async_step_directions(user_input={})
+
+        return self.async_show_form(
+            step_id="directions",
+            data_schema=vol.Schema({
+                vol.Optional(CONF_DIRECTION_FILTER, default=valid_current): SelectSelector(
+                    SelectSelectorConfig(options=direction_options, multiple=True, mode=SelectSelectorMode.LIST)
+                )
+            }),
+            description_placeholders={"stop_name": self._entry.data[CONF_STOP_NAME]},
+        )
+
     async def _load_filter_options(self) -> None:
         session = async_get_clientsession(self.hass)
         params = {
@@ -430,7 +470,7 @@ class VabOptionsFlow(config_entries.OptionsFlow):
             "type_dm": "stop",
             "name_dm": self._entry.data[CONF_STOP_ID],
             "useRealtime": "0",
-            "limit": "30",
+            "limit": "60",
             "mode": "direct",
             "deleteAssignedStops": "1",
             "ptOptionsActive": "1",
@@ -449,16 +489,15 @@ class VabOptionsFlow(config_entries.OptionsFlow):
         if isinstance(raw, dict):
             raw = [raw]
 
-        lines: set[str] = set()
-        directions: set[str] = set()
+        line_dirs: dict[str, set[str]] = {}
         for dep in raw:
             line_info = dep.get("servingLine", {})
-            ln = line_info.get("number") or line_info.get("symbol", "")
-            direction = line_info.get("direction", "")
+            ln = (line_info.get("number") or line_info.get("symbol", "")).strip()
+            direction = _normalize_dir(line_info.get("direction", ""))
             if ln:
-                lines.add(ln.strip())
-            if direction:
-                directions.add(direction.strip())
+                line_dirs.setdefault(ln, set())
+                if direction:
+                    line_dirs[ln].add(direction)
 
-        self._available_lines = sorted(lines, key=lambda x: (not x.isdigit(), x))
-        self._available_directions = sorted(directions)
+        self._available_lines = sorted(line_dirs.keys(), key=lambda x: (not x.isdigit(), x))
+        self._line_directions = {ln: sorted(dirs) for ln, dirs in line_dirs.items()}

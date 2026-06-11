@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.0 — 2026-06-11
+
+### Changed
+- Setup and options flow split into two direction steps: **Step 1** selects lines + walk time, **Step 2** shows only the directions actually served by those lines — no more direction list cluttered with irrelevant lines ([#9](https://github.com/mxkissnr/ha-vab-integration/issues/9))
+
 ## v1.2.0 — 2026-06-11
 
 ### Added

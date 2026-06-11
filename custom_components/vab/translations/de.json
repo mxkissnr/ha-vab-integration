@@ -17,12 +17,18 @@
         }
       },
       "filters": {
-        "title": "Linien & Richtungen filtern",
-        "description": "Optional: Wähle Linien und/oder Richtungen für {stop_name}. Keine Auswahl = alle anzeigen.",
+        "title": "Linien filtern",
+        "description": "Optional: Wähle Linien für {stop_name}. Im nächsten Schritt werden nur die Richtungen dieser Linien angezeigt.",
         "data": {
           "line_filter": "Linien (leer = alle)",
-          "direction_filter": "Richtungen (leer = alle)",
           "walk_time": "Gehzeit zur Haltestelle (Minuten)"
+        }
+      },
+      "directions": {
+        "title": "Richtungen filtern",
+        "description": "Nur Richtungen der gewählten Linien an {stop_name}. Keine Auswahl = alle Richtungen.",
+        "data": {
+          "direction_filter": "Richtungen (leer = alle)"
         }
       }
     },
@@ -37,12 +43,18 @@
     "step": {
       "init": {
         "title": "Einstellungen für {stop_name}",
-        "description": "Linien und Richtungen anpassen. Keine Auswahl = alle anzeigen.",
+        "description": "Linien anpassen. Im nächsten Schritt werden die passenden Richtungen angezeigt.",
         "data": {
           "max_departures": "Anzahl angezeigter Abfahrten",
           "line_filter": "Linien (leer = alle)",
-          "direction_filter": "Richtungen (leer = alle)",
           "walk_time": "Gehzeit zur Haltestelle (Minuten)"
+        }
+      },
+      "directions": {
+        "title": "Richtungen für {stop_name}",
+        "description": "Nur Richtungen der gewählten Linien. Keine Auswahl = alle Richtungen.",
+        "data": {
+          "direction_filter": "Richtungen (leer = alle)"
         }
       }
     }
