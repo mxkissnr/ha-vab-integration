@@ -166,7 +166,21 @@ The integration reloads live departure data each time you open the options dialo
 | EFA Bahnland Bayern | `https://bahnland-bayern.de/efa/` | All VAB bus/tram stops in Aschaffenburg and surroundings |
 | DB / IRIS (marudor.de) | `https://marudor.de/api/iris/v2/abfahrten/` | Train stations in Germany |
 
-Both APIs are free and require no API key.
+Both APIs are **free and require no API key**.
+
+### EFA Bahnland Bayern
+
+Operated by the [Bayerische Eisenbahngesellschaft (BEG)](https://www.beg.bahnland-bayern.de), a public authority funded by the Bavarian state. The EFA (Elektronische Fahrplanauskunft) system is the standard trip planning and departure monitor backbone for public transport in Bavaria.
+
+Real-time data comes from the **AVMS** (Automatic Vehicle Monitoring System) — buses send GPS positions which EFA uses to calculate precise arrival/departure times at all downstream stops. When a departure shows `MONITORED`, its times are live GPS-based. `PLANNED` means schedule only (no GPS signal).
+
+### DB / IRIS via marudor.de
+
+[marudor.de](https://marudor.de) is a community-run service by Markus Rudolph that provides a clean API on top of DB's IRIS real-time system for train departures. It is free to use for personal and low-volume usage.
+
+### Usage & rate limiting
+
+This integration queries each configured stop every **60 seconds**. Each sensor generates one API request per update cycle. The integration sends a `User-Agent` header (`ha-vab-integration`) so operators can identify the traffic source.
 
 ---
 
