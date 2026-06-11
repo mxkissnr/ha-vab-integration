@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue create --repo mxkissnr/ha-vab-integration *)",
+      "Bash(gh issue list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh release create *)",
+      "Bash(git tag *)",
+      "Bash(git push origin *)",
+      "Bash(python3 -m py_compile *)",
+      "Bash(python3 -c *)"
+    ]
+  }
+}
