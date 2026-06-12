@@ -3,7 +3,7 @@
 ## v2.0.1 — 2026-06-12
 
 ### Fixed
-- **Integration lädt nicht nach Update** — Python 3.14 (neuere HA-Container) erkennt `import_module` im async Event Loop als blockierenden Aufruf und bricht den Setup ab. Fix: `sensor`-Modul wird jetzt beim Laden von `__init__.py` synchron vorab importiert, sodass der spätere Import ein schneller Cache-Lookup ist ([#17](https://github.com/mxkissnr/ha-vab-integration/issues/17))
+- **Integration lädt nicht nach Update auf v2.0.0** — `sensor.py` importierte noch `CONF_SOURCE` und `SOURCE_DB` aus `const.py`, die in v2.0.0 entfernt wurden. Führte zu `ImportError` beim Start ([#17](https://github.com/mxkissnr/ha-vab-integration/issues/17))
 
 ## v2.0.0 — 2026-06-12
 

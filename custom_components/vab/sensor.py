@@ -11,12 +11,10 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     CONF_DIRECTION_FILTER,
     CONF_LINE_FILTER,
-    CONF_SOURCE,
     CONF_STOP_ID,
     CONF_STOP_NAME,
     CONF_WALK_TIME,
     DOMAIN,
-    SOURCE_DB,
 )
 from .coordinator import VabCoordinator
 
@@ -33,23 +31,22 @@ async def async_setup_entry(
 class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "min"
+    _attr_icon = "mdi:bus-clock"
 
     def __init__(self, coordinator: VabCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._entry = entry
 
-        source = entry.data.get(CONF_SOURCE, "efa")
         stop_name = entry.data[CONF_STOP_NAME]
         line_filter: list[str] = entry.data.get(CONF_LINE_FILTER, [])
         direction_filter: list[str] = entry.data.get(CONF_DIRECTION_FILTER, [])
 
         self._attr_name = _build_sensor_name(stop_name, line_filter, direction_filter)
         self._attr_unique_id = (
-            f"vab_{source}_{entry.data[CONF_STOP_ID]}"
+            f"vab_{entry.data[CONF_STOP_ID]}"
             f"_l{'_'.join(sorted(line_filter))}"
             f"_d{'_'.join(sorted(direction_filter))}"
         )
-        self._attr_icon = "mdi:train" if source == SOURCE_DB else "mdi:bus-clock"
 
     @property
     def native_value(self) -> int | None:
@@ -63,7 +60,6 @@ class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
         nxt = data[0] if data else None
         walk_time = self._entry.data.get(CONF_WALK_TIME, 0)
         return {
-            # Schnell zugänglich für Templates / Lovelace-Karten
             "next_line": nxt["line"] if nxt else None,
             "next_direction": nxt["direction"] if nxt else None,
             "next_platform": nxt.get("platform") if nxt else None,
@@ -71,15 +67,13 @@ class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
             "next_monitored": nxt.get("monitored") if nxt else None,
             "next_rt_status": nxt.get("rt_status") if nxt else None,
             "leave_in_minutes": nxt.get("leave_in_minutes") if nxt else None,
-            # Vollständige Liste aller Abfahrten
             "departures": data,
-            # Metadaten
             "stop_id": self._entry.data[CONF_STOP_ID],
             "stop_name": self._entry.data[CONF_STOP_NAME],
             "line_filter": self._entry.data.get(CONF_LINE_FILTER, []),
             "direction_filter": self._entry.data.get(CONF_DIRECTION_FILTER, []),
             "walk_time": walk_time,
-            "source": self._entry.data.get(CONF_SOURCE),
+            "source": "efa",
         }
 
 
