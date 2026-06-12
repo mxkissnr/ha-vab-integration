@@ -75,7 +75,7 @@ Or manually: **Settings → Integrations → + Add integration → VAB Abfahrtsm
 
 The setup opens automatically after clicking the button above.
 
-The setup has three steps:
+The setup has four steps:
 
 ### Step 1 — Choose data source and search stop
 
@@ -90,11 +90,15 @@ Enter the stop name (e.g. `Hensbachstraße` or `Aschaffenburg Hauptbahnhof`).
 
 Choose the correct stop from the search results and set how many departures to display (1–20, default 5).
 
-### Step 3 — Filter lines and directions (optional)
-
-The integration fetches live departures and shows available lines and directions as checkboxes.
+### Step 3 — Filter lines and walk time (optional)
 
 - **Line filter** — leave empty to show all lines; or select e.g. `Linie 1`, `Linie 3`
+- **Walk time** — walking time in minutes from your home to this stop (0–30). Enables `leave_in_minutes` per departure so you know when to leave, not just when the bus departs.
+
+### Step 4 — Filter directions (optional)
+
+Only shows directions served by the lines selected in Step 3.
+
 - **Direction filter** — leave empty to show all directions; or select e.g. `Innenstadt`
 
 **Tip:** Add the same stop twice with different direction filters to get two separate sensors — one per direction.
@@ -122,9 +126,10 @@ Each configured stop creates one sensor entity.
 | `stop_name` | Human-readable stop name |
 | `line_filter` | Active line filter (empty = all) |
 | `direction_filter` | Active direction filter (empty = all) |
+| `walk_time` | Configured walk time to the stop in minutes |
 | `source` | `efa` or `db` |
 
-Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`, `realtime`, `effective`, `delay_minutes`, `minutes_until`, `monitored`, `rt_status`.
+Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`, `realtime`, `effective`, `delay_minutes`, `minutes_until`, `leave_in_minutes` (= `minutes_until − walk_time`, only when walk_time > 0), `monitored`, `rt_status`, `source`.
 
 ---
 
