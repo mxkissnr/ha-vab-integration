@@ -139,25 +139,7 @@ Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`,
 
 ## 🃏 Lovelace card
 
-For the best experience, use the dedicated **[VAB Departures Card](https://github.com/mxkissnr/vab-departures-card)** — it auto-detects all VAB sensors, shows a departure board with live countdown, walk-time alerts, and push notifications.
-
-### Example with the built-in markdown card
-
-```yaml
-type: markdown
-content: >
-  ## 🚌 {{ state_attr('sensor.abfahrt_hensbachstrasse_innenstadt', 'next_line') }}
-  → {{ state_attr('sensor.abfahrt_hensbachstrasse_innenstadt', 'next_direction') }}
-
-  in **{{ states('sensor.abfahrt_hensbachstrasse_innenstadt') }} min**
-
-  {% set delay = state_attr('sensor.abfahrt_hensbachstrasse_innenstadt', 'next_delay_minutes') %}
-  {% if delay > 0 %}⚠️ +{{ delay }} min Verspätung{% else %}✅ Pünktlich{% endif %}
-
-  {% if not state_attr('sensor.abfahrt_hensbachstrasse_innenstadt', 'next_monitored') %}
-  _(kein Echtzeitsignal)_
-  {% endif %}
-```
+Use the dedicated **[VAB Departures Card](https://github.com/mxkissnr/vab-departures-card)** for a full departure board — auto-detects all VAB sensors, live countdown, walk-time alerts, star notifications, and push notifications to your phone.
 
 ---
 
