@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import VabCoordinator
+from . import sensor as _sensor_module  # noqa: F401 — pre-import to avoid blocking import_module in event loop
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
