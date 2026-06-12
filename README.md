@@ -16,8 +16,8 @@
 <h2 align="center">VAB Abfahrtsmonitor</h2>
 
 <p align="center">
-  Real-time bus and train departure times for the <strong>VAB region (Aschaffenburg)</strong> directly in Home Assistant.<br/>
-  Powered by the <a href="https://bahnland-bayern.de">Bahnland Bayern EFA API</a> for buses/trams and DB/IRIS via marudor.de for trains.
+  Real-time bus and tram departure times for the <strong>VAB region (Aschaffenburg)</strong> directly in Home Assistant.<br/>
+  Powered by the <a href="https://bahnland-bayern.de">Bahnland Bayern EFA API</a>.
 </p>
 
 <p align="center">
@@ -30,8 +30,7 @@
 
 | | Feature | Description |
 |---|---|---|
-| 🚌 | **Live bus departures** | Real-time data from EFA Bahnland Bayern — covers all VAB bus/tram stops |
-| 🚆 | **Live train departures** | DB/IRIS real-time data via marudor.de |
+| 🚌 | **Live bus/tram departures** | Real-time data from EFA Bahnland Bayern — covers all VAB bus/tram stops |
 | ⏱️ | **Delay tracking** | Shows delay in minutes per departure; `MONITORED` status indicates live GPS tracking |
 | 🔍 | **Line filter** | Show only specific bus lines (e.g. only line 1 and 3) |
 | 🧭 | **Direction filter** | Show only departures towards a specific destination (e.g. Innenstadt or Hauptbahnhof) |
@@ -81,14 +80,9 @@ The setup opens automatically after clicking the button above.
 
 The setup has four steps:
 
-### Step 1 — Choose data source and search stop
+### Step 1 — Search stop
 
-| Option | Description |
-|---|---|
-| **Bus / Tram (EFA)** | All VAB bus and tram stops in the Aschaffenburg area |
-| **Train (DB / IRIS)** | Train stations, e.g. Aschaffenburg Hbf |
-
-Enter the stop name (e.g. `Hensbachstraße` or `Aschaffenburg Hauptbahnhof`).
+Enter the stop name (e.g. `Freihofsplatz` or `Hensbachstraße`).
 
 ### Step 2 — Select stop and departure count
 
@@ -131,7 +125,7 @@ Each configured stop creates one sensor entity.
 | `line_filter` | Active line filter (empty = all) |
 | `direction_filter` | Active direction filter (empty = all) |
 | `walk_time` | Configured walk time to the stop in minutes |
-| `source` | `efa` or `db` |
+| `source` | always `efa` |
 
 Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`, `realtime`, `effective`, `delay_minutes`, `minutes_until`, `leave_in_minutes` (= `minutes_until − walk_time`, only when walk_time > 0), `monitored`, `rt_status`, `source`.
 
@@ -154,24 +148,13 @@ The integration reloads live departure data each time you open the options dialo
 
 ---
 
-## 📡 Data sources
+## 📡 Data source
 
-| Source | API | Coverage |
-|---|---|---|
-| EFA Bahnland Bayern | `https://bahnland-bayern.de/efa/` | All VAB bus/tram stops in Aschaffenburg and surroundings |
-| DB / IRIS (marudor.de) | `https://marudor.de/api/iris/v2/abfahrten/` | Train stations in Germany |
-
-Both APIs are **free and require no API key**.
-
-### EFA Bahnland Bayern
+**EFA Bahnland Bayern** — `https://bahnland-bayern.de/efa/` — free, no API key required.
 
 Operated by the [Bayerische Eisenbahngesellschaft (BEG)](https://www.beg.bahnland-bayern.de), a public authority funded by the Bavarian state. The EFA (Elektronische Fahrplanauskunft) system is the standard trip planning and departure monitor backbone for public transport in Bavaria.
 
 Real-time data comes from the **AVMS** (Automatic Vehicle Monitoring System) — buses send GPS positions which EFA uses to calculate precise arrival/departure times at all downstream stops. When a departure shows `MONITORED`, its times are live GPS-based. `PLANNED` means schedule only (no GPS signal).
-
-### DB / IRIS via marudor.de
-
-[marudor.de](https://marudor.de) is a community-run service by Markus Rudolph that provides a clean API on top of DB's IRIS real-time system for train departures. It is free to use for personal and low-volume usage.
 
 ### Usage & rate limiting
 
