@@ -20,6 +20,10 @@
   Powered by the <a href="https://bahnland-bayern.de">Bahnland Bayern EFA API</a> for buses/trams and DB/IRIS via marudor.de for trains.
 </p>
 
+<p align="center">
+  Pair with the <a href="https://github.com/mxkissnr/vab-departures-card"><strong>VAB Departures Card</strong></a> for a full departure board in your Lovelace dashboard.
+</p>
+
 ---
 
 ## ✨ Features
@@ -133,7 +137,11 @@ Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`,
 
 ---
 
-## 🃏 Example Lovelace card
+## 🃏 Lovelace card
+
+For the best experience, use the dedicated **[VAB Departures Card](https://github.com/mxkissnr/vab-departures-card)** — it auto-detects all VAB sensors, shows a departure board with live countdown, walk-time alerts, and push notifications.
+
+### Example with the built-in markdown card
 
 ```yaml
 type: markdown
