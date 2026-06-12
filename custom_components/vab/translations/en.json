@@ -3,9 +3,8 @@
     "step": {
       "user": {
         "title": "Search stop",
-        "description": "Choose a data source and enter the name of the stop.",
+        "description": "Enter the name of the stop (e.g. Freihofsplatz or Hensbachstraße).",
         "data": {
-          "source": "Data source",
           "stop_search": "Stop search"
         }
       },

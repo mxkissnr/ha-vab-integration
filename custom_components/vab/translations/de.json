@@ -3,9 +3,8 @@
     "step": {
       "user": {
         "title": "Haltestelle suchen",
-        "description": "Wähle die Datenquelle und gib den Namen der Haltestelle ein.",
+        "description": "Gib den Namen der Haltestelle ein (z. B. Freihofsplatz oder Hensbachstraße).",
         "data": {
-          "source": "Datenquelle",
           "stop_search": "Haltestellen-Suche"
         }
       },
@@ -18,7 +17,7 @@
       },
       "filters": {
         "title": "Linien filtern",
-        "description": "Optional: Wähle Linien für {stop_name}. Im nächsten Schritt werden nur die Richtungen dieser Linien angezeigt.",
+        "description": "Optional: Wähle Linien für {stop_name}. Keine Auswahl = alle Linien.",
         "data": {
           "line_filter": "Linien (leer = alle)",
           "walk_time": "Gehzeit zur Haltestelle (Minuten)"
@@ -26,7 +25,7 @@
       },
       "directions": {
         "title": "Richtungen filtern",
-        "description": "Nur Richtungen der gewählten Linien an {stop_name}. Keine Auswahl = alle Richtungen.",
+        "description": "Wähle Richtungen für die ausgewählten Linien an {stop_name}. Keine Auswahl = alle Richtungen.",
         "data": {
           "direction_filter": "Richtungen (leer = alle)"
         }

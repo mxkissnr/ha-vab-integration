@@ -9,18 +9,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import db_fetch_raw, efa_fetch_raw
+from .api import efa_fetch_raw
 from .const import (
     CONF_DIRECTION_FILTER,
     CONF_LINE_FILTER,
     CONF_MAX_DEPARTURES,
-    CONF_SOURCE,
     CONF_STOP_ID,
     CONF_WALK_TIME,
     DEFAULT_DEPARTURES,
     DOMAIN,
-    SOURCE_DB,
-    SOURCE_EFA,
     UPDATE_INTERVAL,
 )
 from .utils import normalize_direction
@@ -38,19 +35,15 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         )
         self.entry = entry
         self.stop_id: str = entry.data[CONF_STOP_ID]
-        self.source: str = entry.data.get(CONF_SOURCE, SOURCE_EFA)
         self.max_departures: int = entry.data.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES)
         self.line_filter: list[str] = entry.data.get(CONF_LINE_FILTER, [])
         self.direction_filter: list[str] = entry.data.get(CONF_DIRECTION_FILTER, [])
         self.walk_time: int = entry.data.get(CONF_WALK_TIME, 0)
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
-        if self.source == SOURCE_DB:
-            raw = await self._fetch_db()
-        else:
-            raw = await self._fetch_efa()
-
+        raw = await self._fetch_efa()
         result = _apply_filters(raw, self.line_filter, self.direction_filter)[: self.max_departures]
+
         if self.walk_time:
             for dep in result:
                 dep["leave_in_minutes"] = dep["minutes_until"] - self.walk_time
@@ -93,22 +86,6 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
 
         return _parse_efa(raw_list)
 
-    async def _fetch_db(self) -> list[dict[str, Any]]:
-        session = async_get_clientsession(self.hass)
-        for lookahead in (480, 1440):
-            try:
-                raw_list = await db_fetch_raw(session, self.stop_id, lookahead)
-            except Exception as err:
-                raise UpdateFailed(f"DB/IRIS-Fehler: {err}") from err
-            result = _parse_db(raw_list)
-            if result:
-                return result
-        return []
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Filters
-# ──────────────────────────────────────────────────────────────────────────────
 
 def _apply_filters(
     departures: list[dict[str, Any]],
@@ -125,10 +102,6 @@ def _apply_filters(
         ]
     return departures
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Parsers
-# ──────────────────────────────────────────────────────────────────────────────
 
 def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
     now = datetime.now()
@@ -171,7 +144,7 @@ def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
                 "minutes_until": minutes_until,
                 "monitored": rt_status == "MONITORED",
                 "rt_status": rt_status,
-                "source": SOURCE_EFA,
+                "source": "efa",
             })
         except (KeyError, ValueError, TypeError):
             continue
@@ -180,49 +153,6 @@ def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
     departures.sort(key=lambda x: x["minutes_until"])
     return departures
 
-
-def _parse_db(raw: list[dict]) -> list[dict[str, Any]]:
-    now = datetime.now()
-    departures: list[dict[str, Any]] = []
-
-    for dep in raw:
-        try:
-            time_info = dep.get("departure", dep)
-            planned = _parse_iso_ms(time_info.get("scheduledTime"))
-            realtime = _parse_iso_ms(time_info.get("time"))
-            effective = realtime or planned
-            if effective is None:
-                continue
-
-            delay = 0
-            if planned and realtime:
-                delay = int((realtime - planned).total_seconds() / 60)
-
-            minutes_until = int((effective - now).total_seconds() / 60)
-            train = dep.get("train", {})
-
-            departures.append({
-                "line": train.get("number", "?"),
-                "direction": dep.get("destination", ""),
-                "planned": planned.isoformat() if planned else None,
-                "realtime": realtime.isoformat() if realtime else None,
-                "effective": effective.isoformat(),
-                "delay_minutes": delay,
-                "minutes_until": minutes_until,
-                "is_realtime": realtime is not None,
-                "source": SOURCE_DB,
-            })
-        except (KeyError, ValueError, TypeError):
-            continue
-
-    departures = [d for d in departures if d["minutes_until"] >= -1]
-    departures.sort(key=lambda x: x["minutes_until"])
-    return departures
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Datetime helpers
-# ──────────────────────────────────────────────────────────────────────────────
 
 def _parse_efa_datetime(dt: dict) -> datetime | None:
     if not dt or not dt.get("year"):
@@ -236,15 +166,4 @@ def _parse_efa_datetime(dt: dict) -> datetime | None:
             minute=int(dt["minute"]),
         )
     except (KeyError, ValueError, TypeError):
-        return None
-
-
-def _parse_iso_ms(value: str | int | None) -> datetime | None:
-    if value is None:
-        return None
-    try:
-        if isinstance(value, (int, float)):
-            return datetime.fromtimestamp(value / 1000)
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except (ValueError, OSError):
         return None

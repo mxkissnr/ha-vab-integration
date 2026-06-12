@@ -3,9 +3,8 @@
     "step": {
       "user": {
         "title": "Haltestelle suchen",
-        "description": "Wähle die Datenquelle und gib den Namen der Haltestelle ein.",
+        "description": "Gib den Namen der Haltestelle ein (z. B. Freihofsplatz oder Hensbachstraße).",
         "data": {
-          "source": "Datenquelle",
           "stop_search": "Haltestellen-Suche"
         }
       },

@@ -1,19 +1,12 @@
 from datetime import datetime
-from unittest.mock import patch
 
 import pytest
 
-from custom_components.vab.coordinator import _apply_filters, _parse_db, _parse_efa
+from custom_components.vab.coordinator import _apply_filters, _parse_efa
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Fixtures
-# ──────────────────────────────────────────────────────────────────────────────
 
 def _efa_dep(line="10", direction="Schweinheim", minutes=5, delay=0, monitored=True, cancelled=False):
     now = datetime.now()
-    effective = datetime(now.year, now.month, now.day, now.hour, now.minute) if minutes == 0 else now
-    # Build a minimal EFA departure dict
     effective_dt = {
         "year": str(now.year), "month": str(now.month), "day": str(now.day),
         "hour": str((now.hour + (now.minute + minutes) // 60) % 24),
@@ -32,22 +25,6 @@ def _efa_dep(line="10", direction="Schweinheim", minutes=5, delay=0, monitored=T
         "platformName": "A",
     }
 
-
-def _db_dep(line="RE 58", direction="Frankfurt", minutes=10, delay=0):
-    now = datetime.now()
-    from datetime import timedelta
-    sched = (now + timedelta(minutes=minutes - delay)).isoformat()
-    real = (now + timedelta(minutes=minutes)).isoformat()
-    return {
-        "train": {"number": line},
-        "destination": direction,
-        "departure": {"scheduledTime": sched, "time": real},
-    }
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  _apply_filters
-# ──────────────────────────────────────────────────────────────────────────────
 
 class TestApplyFilters:
     def _dep(self, line, direction):
@@ -80,10 +57,6 @@ class TestApplyFilters:
         assert result == [self._dep("4", "Schweinheim")]
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-#  _parse_efa
-# ──────────────────────────────────────────────────────────────────────────────
-
 class TestParseEfa:
     def test_basic_departure_parsed(self):
         raw = [_efa_dep(line="10", direction="Schweinheim", minutes=5)]
@@ -109,26 +82,3 @@ class TestParseEfa:
         raw = [_efa_dep(direction="Aschaffenburg ; Schweinheim")]
         result = _parse_efa(raw)
         assert result[0]["direction"] == "Schweinheim"
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  _parse_db
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestParseDb:
-    def test_basic_departure_parsed(self):
-        raw = [_db_dep(line="RE 58", direction="Frankfurt", minutes=10)]
-        result = _parse_db(raw)
-        assert len(result) == 1
-        assert result[0]["line"] == "RE 58"
-        assert result[0]["direction"] == "Frankfurt"
-
-    def test_delay_calculated(self):
-        raw = [_db_dep(minutes=10, delay=2)]
-        result = _parse_db(raw)
-        assert result[0]["delay_minutes"] == 2
-
-    def test_sorted_by_minutes_until(self):
-        raw = [_db_dep(line="ICE 28", minutes=20), _db_dep(line="RE 58", minutes=5)]
-        result = _parse_db(raw)
-        assert result[0]["line"] == "RE 58"

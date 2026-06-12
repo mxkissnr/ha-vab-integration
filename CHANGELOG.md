@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.0.0 — 2026-06-12
+
+### Breaking Change
+- **DB/IRIS (Zug via marudor.de) komplett entfernt** — die Integration fokussiert sich ausschließlich auf VAB Bus/Tram via EFA Bahnland Bayern. Bestehende DB/IRIS-Konfigurationen werden nicht mehr geladen und müssen entfernt werden. Für Züge gibt es bessere dedizierte HA-Integrationen ([#16](https://github.com/mxkissnr/ha-vab-integration/issues/16))
+
+### Changed
+- Setup-Flow Schritt 1: Quellauswahl (Bus/Zug) entfernt — direkt Haltestellen-Suche
+- `CONF_SOURCE`, `SOURCE_EFA`, `SOURCE_DB`, `MARUDOR_*` Konstanten entfernt
+- `api.py`: `db_stop_search`, `db_fetch_raw` entfernt
+- `coordinator.py`: `_fetch_db`, `_parse_db`, `_parse_iso_ms` entfernt
+
 ## v1.5.0 — 2026-06-11
 
 ### Added

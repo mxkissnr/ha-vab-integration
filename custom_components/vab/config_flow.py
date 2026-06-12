@@ -17,27 +17,19 @@ from homeassistant.helpers.selector import (
     TextSelector,
 )
 
-from .api import db_stop_search, efa_line_directions, efa_stop_search
+from .api import efa_line_directions, efa_stop_search
 from .const import (
     CONF_DIRECTION_FILTER,
     CONF_LINE_FILTER,
     CONF_MAX_DEPARTURES,
-    CONF_SOURCE,
     CONF_STOP_ID,
     CONF_STOP_NAME,
     CONF_WALK_TIME,
     DEFAULT_DEPARTURES,
     DOMAIN,
-    SOURCE_DB,
-    SOURCE_EFA,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-_SOURCE_OPTIONS = [
-    SelectOptionDict(value=SOURCE_EFA, label="Bus / Tram  (EFA Bahnland Bayern)"),
-    SelectOptionDict(value=SOURCE_DB, label="Zug  (DB / IRIS Echtzeit)"),
-]
 
 
 class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -51,7 +43,6 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._stops: list[dict[str, str]] = []
-        self._source: str = SOURCE_EFA
         self._selected_stop_id: str = ""
         self._selected_stop_name: str = ""
         self._max_departures: int = DEFAULT_DEPARTURES
@@ -68,14 +59,9 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            self._source = user_input[CONF_SOURCE]
             query = user_input["stop_search"].strip()
             session = async_get_clientsession(self.hass)
-
-            if self._source == SOURCE_EFA:
-                stops = await efa_stop_search(session, query)
-            else:
-                stops = await db_stop_search(session, query)
+            stops = await efa_stop_search(session, query)
 
             if stops:
                 self._stops = stops
@@ -85,9 +71,6 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_SOURCE, default=SOURCE_EFA): SelectSelector(
-                    SelectSelectorConfig(options=_SOURCE_OPTIONS)
-                ),
                 vol.Required("stop_search"): TextSelector(),
             }),
             errors=errors,
@@ -166,7 +149,6 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             title = _build_entry_title(self._selected_stop_name, line_filter, direction_filter)
             unique_id = "_".join(filter(None, [
-                self._source,
                 self._selected_stop_id,
                 ",".join(sorted(line_filter)),
                 ",".join(sorted(direction_filter)),
@@ -180,7 +162,6 @@ class VabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_STOP_ID: self._selected_stop_id,
                     CONF_STOP_NAME: self._selected_stop_name,
                     CONF_MAX_DEPARTURES: self._max_departures,
-                    CONF_SOURCE: self._source,
                     CONF_LINE_FILTER: line_filter,
                     CONF_DIRECTION_FILTER: direction_filter,
                     CONF_WALK_TIME: self._walk_time,

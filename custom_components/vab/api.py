@@ -9,8 +9,6 @@ from .const import (
     EFA_BASE_URL,
     EFA_DM_ENDPOINT,
     EFA_SF_ENDPOINT,
-    MARUDOR_BASE_URL,
-    MARUDOR_DEPARTURES_ENDPOINT,
     USER_AGENT,
 )
 from .utils import normalize_direction
@@ -19,10 +17,6 @@ _LOGGER = logging.getLogger(__name__)
 _HEADERS = {"User-Agent": USER_AGENT}
 _TIMEOUT = aiohttp.ClientTimeout(total=10)
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Stop search
-# ──────────────────────────────────────────────────────────────────────────────
 
 async def efa_stop_search(
     session: aiohttp.ClientSession, query: str
@@ -69,35 +63,6 @@ async def efa_stop_search(
     return stops
 
 
-async def db_stop_search(
-    session: aiohttp.ClientSession, query: str
-) -> list[dict[str, str]]:
-    try:
-        async with session.get(
-            "https://marudor.de/api/hafas/v3/stations",
-            params={"searchTerm": query},
-            headers={"Accept": "application/json", **_HEADERS},
-            timeout=_TIMEOUT,
-        ) as resp:
-            resp.raise_for_status()
-            data = await resp.json(content_type=None)
-    except Exception as err:
-        _LOGGER.warning("DB station search failed: %s", err)
-        return []
-
-    stops = []
-    for station in data if isinstance(data, list) else []:
-        eva = str(station.get("evaNumber") or station.get("eva", ""))
-        name = station.get("name", "")
-        if eva and name:
-            stops.append({"id": eva, "name": name, "place": ""})
-    return stops
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Departure fetching (raw API response)
-# ──────────────────────────────────────────────────────────────────────────────
-
 async def efa_fetch_raw(
     session: aiohttp.ClientSession,
     stop_id: str,
@@ -135,25 +100,6 @@ async def efa_fetch_raw(
         raw = [raw]
     return raw
 
-
-async def db_fetch_raw(
-    session: aiohttp.ClientSession,
-    stop_id: str,
-    lookahead: int,
-) -> list[dict[str, Any]]:
-    async with session.get(
-        f"{MARUDOR_BASE_URL}{MARUDOR_DEPARTURES_ENDPOINT}/{stop_id}",
-        params={"lookahead": str(lookahead)},
-        headers={"Accept": "application/json", **_HEADERS},
-        timeout=_TIMEOUT,
-    ) as resp:
-        resp.raise_for_status()
-        return (await resp.json(content_type=None)).get("departures", [])
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  Filter options (line → directions mapping)
-# ──────────────────────────────────────────────────────────────────────────────
 
 async def efa_line_directions(
     session: aiohttp.ClientSession,
@@ -200,5 +146,6 @@ async def efa_line_directions(
                 line_dirs[ln].add(direction)
 
     return {ln: sorted(dirs) for ln, dirs in sorted(
-        line_dirs.items(), key=lambda kv: (not kv[0].isdigit(), kv[0].zfill(5) if kv[0].isdigit() else kv[0])
+        line_dirs.items(),
+        key=lambda kv: (not kv[0].isdigit(), kv[0].zfill(5) if kv[0].isdigit() else kv[0]),
     )}
