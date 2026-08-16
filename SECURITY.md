@@ -18,10 +18,10 @@ I will acknowledge your report within **7 days** and aim to release a fix within
 
 ## Scope
 
-This integration runs locally on your Home Assistant instance and communicates only with two external public APIs (no authentication required):
+This integration runs locally on your Home Assistant instance and communicates only with
+one external public API (no authentication required):
 
 - `bahnland-bayern.de/efa/` — EFA departure monitor
-- `marudor.de/api/` — DB/IRIS real-time data
 
 No credentials or personal data are stored. The primary attack surface is the JSON parsing of API responses.
 

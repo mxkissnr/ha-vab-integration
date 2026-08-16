@@ -15,18 +15,20 @@ from .const import (
     CONF_LINE_FILTER,
     CONF_MAX_DEPARTURES,
     CONF_STOP_ID,
+    CONF_STOP_NAME,
     CONF_WALK_TIME,
     DEFAULT_DEPARTURES,
     DOMAIN,
     UPDATE_INTERVAL,
 )
 from .utils import normalize_direction
+from .watches import WatchManager
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, watch_manager: WatchManager) -> None:
         super().__init__(
             hass,
             _LOGGER,
@@ -34,6 +36,7 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
         self.entry = entry
+        self.watch_manager = watch_manager
         self.stop_id: str = entry.data[CONF_STOP_ID]
         self.max_departures: int = entry.data.get(CONF_MAX_DEPARTURES, DEFAULT_DEPARTURES)
         self.line_filter: list[str] = entry.data.get(CONF_LINE_FILTER, [])
@@ -47,6 +50,10 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         if self.walk_time:
             for dep in result:
                 dep["leave_in_minutes"] = dep["minutes_until"] - self.walk_time
+
+        await self.watch_manager.async_check(
+            self.entry.entry_id, self.entry.data[CONF_STOP_NAME], result
+        )
 
         if not result and raw:
             _LOGGER.warning(

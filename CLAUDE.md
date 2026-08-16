@@ -73,6 +73,9 @@ custom_components/vab/     ← HA custom integration
   config_flow.py           ← VabConfigFlow (4 steps) + VabOptionsFlow (2 steps)
                               shared helpers: _directions_for_lines, _build_entry_title
   sensor.py                ← VabDepartureSensor entity
+  watches.py               ← WatchManager: server-side departure watches (star notifications),
+                              persisted via homeassistant.helpers.storage.Store
+  services.yaml            ← vab.watch_departure / vab.unwatch_departure service schemas
   strings.json             ← German strings (HA fallback)
   translations/
     de.json                ← German translations
@@ -109,9 +112,24 @@ OptionsFlow: **init** (lines + max departures + walk time) → **directions**
 - **Coordinator reload:** `entry.add_update_listener(async_reload_entry)` in `async_setup_entry` — options changes take effect immediately without HA restart
 - **`departureList: null`:** always use `data.get("departureList") or []` (never `.get(..., [])`) — the API returns null, not missing key
 
+## Server-side watches
+
+`watches.py` — `WatchManager` holds all watches across config entries, persisted via `Store`. A
+watch = `{entry_id, line, direction, planned, notify_service, leave_threshold}` + server-side
+notified-state (`notified_leave`, `notified_delay`). Registered once per `hass` instance in
+`__init__.py` (not per entry), in `hass.data[DOMAIN]["_watch_manager"]`.
+
+Services `vab.watch_departure` / `vab.unwatch_departure` (see `services.yaml`) resolve
+`entity_id` → `entry_id` via the entity registry. `coordinator.py` calls
+`watch_manager.async_check(entry_id, stop_name, result)` after every update — leave
+notification fires once when `leave_in_minutes <= leave_threshold` (re-arms when back above),
+delay notification fires when the delay value changes (re-arms at 0). Notifications go to the
+watch's `notify_service` if it exists under `notify.*`, else the HA persistent notification
+bell. Watches auto-expire once their departure has passed and left the data.
+
 ## Sensor attributes
 
-Top-level: `next_line`, `next_direction`, `next_platform`, `next_delay_minutes`, `next_monitored`, `stop_name`, `line_filter`, `direction_filter`, `walk_time`, `source`
+Top-level: `next_line`, `next_direction`, `next_platform`, `next_delay_minutes`, `next_monitored`, `stop_name`, `line_filter`, `direction_filter`, `walk_time`, `watched`, `source`
 
 Per departure in `departures[]`: `line`, `direction`, `platform`, `planned`, `realtime`, `effective`, `delay_minutes`, `minutes_until`, `leave_in_minutes` (= minutes_until − walk_time, only when walk_time > 0), `monitored`, `rt_status`, `source`
 

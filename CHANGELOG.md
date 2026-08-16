@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.1.0 — 2026-08-16
+
+### Added
+- **Server-side departure watches** — star notifications now run in the integration
+  instead of the browser: `services.yaml` adds `vab.watch_departure` /
+  `vab.unwatch_departure`, watches are persisted via `homeassistant.helpers.storage.Store`
+  and checked against fresh data after every 60s coordinator update. Fixes duplicate
+  notifications from multiple open tabs/devices, notification state surviving page
+  reloads, and stars syncing across devices. Sensor entities now expose a `watched`
+  attribute so the card can render star state from the backend ([#18](https://github.com/mxkissnr/ha-vab-integration/issues/18))
+- Repo hardening: CodeQL, Dependency Review, OpenSSF Scorecard, Dependabot
+  (pip + GitHub Actions), HACS/Hassfest validation workflow, issue templates, PR template
+
+### Fixed
+- `SECURITY.md` / `CONTRIBUTING.md` still referenced the removed DB/IRIS source and the
+  old 3-step setup flow — updated to match the current EFA-only, 4-step integration
+
 ## v2.0.1 — 2026-06-12
 
 ### Fixed

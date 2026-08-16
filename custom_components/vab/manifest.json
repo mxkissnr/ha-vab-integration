@@ -1,7 +1,7 @@
 {
   "domain": "vab",
   "name": "VAB Abfahrtsmonitor",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "config_flow": true,
   "documentation": "https://github.com/mxkissnr/ha-vab-integration",
   "requirements": [],

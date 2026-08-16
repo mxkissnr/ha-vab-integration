@@ -125,7 +125,21 @@ Each configured stop creates one sensor entity.
 | `line_filter` | Active line filter (empty = all) |
 | `direction_filter` | Active direction filter (empty = all) |
 | `walk_time` | Configured walk time to the stop in minutes |
+| `watched` | Active departure watches for this sensor (`line\|direction\|planned` keys) |
 | `source` | always `efa` |
+
+---
+
+## ⭐ Departure watches
+
+Services `vab.watch_departure` / `vab.unwatch_departure` let you watch a specific
+line/direction/planned-time departure and get notified server-side — once when it's time to
+leave (`leave_in_minutes ≤ leave_threshold`), and again whenever its delay changes. Notifications
+go to a configured `notify.*` service or the HA persistent notification bell. Watches persist
+across restarts and are checked on every 60s update, so they work even with no browser tab open.
+
+The **[VAB Departures Card](https://github.com/mxkissnr/vab-departures-card)** (≥ v1.11.0) calls
+these services directly from its ★ button — no manual setup needed.
 
 Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`, `realtime`, `effective`, `delay_minutes`, `minutes_until`, `leave_in_minutes` (= `minutes_until − walk_time`, only when walk_time > 0), `monitored`, `rt_status`, `source`.
 

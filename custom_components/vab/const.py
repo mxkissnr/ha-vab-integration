@@ -14,3 +14,8 @@ CONF_WALK_TIME = "walk_time"
 
 DEFAULT_DEPARTURES = 5
 UPDATE_INTERVAL = 60  # seconds
+
+DEFAULT_LEAVE_THRESHOLD = 2  # minutes
+
+SERVICE_WATCH_DEPARTURE = "watch_departure"
+SERVICE_UNWATCH_DEPARTURE = "unwatch_departure"

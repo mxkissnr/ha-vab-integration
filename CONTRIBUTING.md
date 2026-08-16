@@ -8,7 +8,7 @@ Bug reports, feature ideas and pull requests are welcome!
    (no PRs without a linked issue — see [CLAUDE.md](CLAUDE.md) for context)
 2. **Fork & branch** — `feature/short-description` or `fix/short-description`
 3. **Implement** — commit with `Closes #N` in the message
-4. **Pull request** — reference the issue; keep PRs focused on one thing
+4. **Pull request** — use the PR template; keep PRs focused on one thing
 
 ## Reporting a bug
 
@@ -22,9 +22,10 @@ Include:
 
 | Area | Details |
 |---|---|
-| Coordinator | `coordinator.py` — fetches EFA/DB, applies filters, parses departure data |
-| Config flow | `config_flow.py` — 3-step setup + OptionsFlow for editing |
+| Coordinator | `coordinator.py` — fetches EFA departures, applies filters, parses departure data |
+| Config flow | `config_flow.py` — 4-step setup + OptionsFlow for editing |
 | Sensor | `sensor.py` — exposes `minutes_until` as state, full departure list as attributes |
+| Watches | `watches.py` — server-side departure watches (star notifications), persisted via `Store` |
 | Constants | `const.py` — all API URLs and `CONF_*` keys live here |
 | Translations | `translations/de.json` + `translations/en.json` — always update both together |
 

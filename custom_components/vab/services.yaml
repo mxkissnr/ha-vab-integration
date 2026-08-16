@@ -1,0 +1,84 @@
+watch_departure:
+  name: Watch departure
+  description: >-
+    Watch a specific line/direction/planned-time departure. The integration sends a
+    notification server-side when it's time to leave, or when the trip's delay changes.
+  fields:
+    entity_id:
+      name: Entity
+      description: The vab sensor entity for the stop.
+      required: true
+      selector:
+        entity:
+          integration: vab
+    line:
+      name: Line
+      description: Line number, exactly as shown in the departure (e.g. "10").
+      required: true
+      example: "10"
+      selector:
+        text:
+    direction:
+      name: Direction
+      description: Direction/destination, exactly as shown in the departure.
+      required: true
+      example: Innenstadt
+      selector:
+        text:
+    planned:
+      name: Planned time
+      description: The departure's planned ISO timestamp, exactly as returned in its `planned` field.
+      required: true
+      selector:
+        text:
+    notify_service:
+      name: Notify service
+      description: >-
+        notify.* service name (without the "notify." prefix) for push notifications.
+        Leave empty to use the HA persistent notification bell instead.
+      required: false
+      example: mobile_app_iphone
+      selector:
+        text:
+    leave_threshold:
+      name: Leave threshold
+      description: Minutes before departure (minus walk time) at which the leave notification fires.
+      required: false
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          mode: box
+
+unwatch_departure:
+  name: Unwatch departure
+  description: Stop watching a previously watched departure.
+  fields:
+    entity_id:
+      name: Entity
+      description: The vab sensor entity for the stop.
+      required: true
+      selector:
+        entity:
+          integration: vab
+    line:
+      name: Line
+      description: Line number, exactly as shown in the departure.
+      required: true
+      example: "10"
+      selector:
+        text:
+    direction:
+      name: Direction
+      description: Direction/destination, exactly as shown in the departure.
+      required: true
+      example: Innenstadt
+      selector:
+        text:
+    planned:
+      name: Planned time
+      description: The departure's planned ISO timestamp, exactly as returned in its `planned` field.
+      required: true
+      selector:
+        text:

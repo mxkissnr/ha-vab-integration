@@ -74,6 +74,7 @@ class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
             "direction_filter": self._entry.data.get(CONF_DIRECTION_FILTER, []),
             "walk_time": walk_time,
             "source": "efa",
+            "watched": self.coordinator.watch_manager.keys_for_entry(self._entry.entry_id),
         }
 
 
