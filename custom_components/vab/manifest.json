@@ -1,11 +1,11 @@
 {
   "domain": "vab",
   "name": "VAB Abfahrtsmonitor",
-  "version": "2.1.0",
-  "config_flow": true,
-  "documentation": "https://github.com/mxkissnr/ha-vab-integration",
-  "requirements": [],
-  "dependencies": [],
   "codeowners": ["@mxkissnr"],
-  "iot_class": "cloud_polling"
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/mxkissnr/ha-vab-integration",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "2.1.0"
 }
