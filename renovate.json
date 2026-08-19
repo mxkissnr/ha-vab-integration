@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "semanticCommits": "enabled",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "labels": ["security"],
+    "automerge": false
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["/^github\\/codeql-action/"],
+      "groupName": "codeql-action",
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "description": "github/codeql-action's init/analyze/upload-sarif sub-actions ship from one release train and must stay version-matched, or the Analyze job fails on the mismatch."
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["/^github\\/codeql-action/"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "codeql-action"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "excludePackageNames": ["/^github\\/codeql-action/"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "description": "This repo has no pinned pip dependency files -- every action here is CI-only, safe to automerge on green."
+    }
+  ]
+}
