@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.2.0 — 2026-08-24
+
+### Added
+- **VAB Departures Card now ships bundled** — the card is registered automatically as a
+  Lovelace resource on setup (`www/vab-departures-card.js`, cache-busted with the integration
+  version), matching the pattern used by glp-integration. No more manual copy into HA's
+  `www/` folder or separate HACS card listing ([#27](https://github.com/mxkissnr/ha-vab-integration/issues/27)).
+  Card release: [vab-departures-card v1.12.0](https://github.com/mxkissnr/vab-departures-card/releases/tag/v1.12.0)
+  (selectable card themes).
+
 ## v2.1.1 — 2026-08-24
 
 ### Fixed

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import os
+
 import voluptuous as vol
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
+from homeassistant.loader import async_get_integration
 
 from .const import (
     DEFAULT_LEAVE_THRESHOLD,
@@ -43,6 +49,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await watch_manager.async_load()
         domain_data["_watch_manager"] = watch_manager
         _async_register_services(hass, watch_manager)
+
+    # Register the bundled VAB Departures Card and its Lovelace resource once
+    # (idempotent across multiple config entries). Mirrors glp-integration's
+    # pattern: the card ships inside this repo instead of as a separate HACS
+    # listing (see #27).
+    if not hass.data.get(f"{DOMAIN}_frontend_registered"):
+        integration = await async_get_integration(hass, DOMAIN)
+        www_path = os.path.join(os.path.dirname(__file__), "www")
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(f"/{DOMAIN}/www", www_path, cache_headers=False)]
+        )
+        add_extra_js_url(hass, f"/{DOMAIN}/www/vab-departures-card.js?v={integration.version}")
+        hass.data[f"{DOMAIN}_frontend_registered"] = True
 
     coordinator = VabCoordinator(hass, entry, domain_data["_watch_manager"])
     await coordinator.async_config_entry_first_refresh()

@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  Pair with the <a href="https://github.com/mxkissnr/vab-departures-card"><strong>VAB Departures Card</strong></a> for a full departure board in your Lovelace dashboard.
+  Includes the <a href="https://github.com/mxkissnr/vab-departures-card"><strong>VAB Departures Card</strong></a> bundled — a full departure board in your Lovelace dashboard, no extra install step.
 </p>
 
 ---
@@ -147,7 +147,11 @@ Each entry in `departures` contains: `line`, `direction`, `platform`, `planned`,
 
 ## 🃏 Lovelace card
 
-Use the dedicated **[VAB Departures Card](https://github.com/mxkissnr/vab-departures-card)** for a full departure board — auto-detects all VAB sensors, live countdown, walk-time alerts, star notifications, and push notifications to your phone.
+The **[VAB Departures Card](https://github.com/mxkissnr/vab-departures-card)** ships bundled
+with this integration and is registered automatically — no separate HACS listing or manual
+resource setup needed. Just add a `type: custom:vab-departures-card` card to your dashboard.
+Full departure board with auto-detect, live countdown, walk-time alerts, star notifications,
+push notifications, and 8 selectable visual themes.
 
 ---
 
