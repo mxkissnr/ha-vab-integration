@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.1 — 2026-08-24
+
+### Fixed
+- **HACS brand-assets validation** — HACS's brands check now finds a local
+  `custom_components/vab/brand/` folder (icon/logo, 1x + 2x) instead of failing or
+  falling back, matching the pattern already used by other integrations. No more
+  need for an upstream submission to `home-assistant/brands` ([#22](https://github.com/mxkissnr/ha-vab-integration/issues/22))
+
+### Changed
+- Switched dependency updates from Dependabot to Renovate ([#21](https://github.com/mxkissnr/ha-vab-integration/issues/21))
+
 ## v2.1.0 — 2026-08-16
 
 ### Added
