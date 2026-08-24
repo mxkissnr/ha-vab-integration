@@ -46,10 +46,14 @@ Every commit that ships a feature or fix needs:
 After the commit:
 ```
 git tag v<version>
-git push origin main
 git push origin v<version>
 gh release create v<version> --title "v<version>" --notes "..."
 ```
+
+`main` is branch-protected (4 required status checks: Analyze/python, CodeQL,
+Dependency Review, HACS, Pytest, Hassfest) — a direct `git push origin main`
+is rejected. Land the release commit via a PR (`release/v<version>` branch),
+wait for checks to pass, merge, then tag/release from `main` as above.
 
 ## Repos
 
