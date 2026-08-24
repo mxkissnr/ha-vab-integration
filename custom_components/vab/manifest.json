@@ -3,7 +3,7 @@
   "name": "VAB Abfahrtsmonitor",
   "codeowners": ["@mxkissnr"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["http", "frontend"],
   "documentation": "https://github.com/mxkissnr/ha-vab-integration",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/mxkissnr/ha-vab-integration/issues",
