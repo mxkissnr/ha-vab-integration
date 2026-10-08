@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -6,24 +6,20 @@ from custom_components.vab.coordinator import _apply_filters, _parse_efa
 
 
 def _efa_dep(line="10", direction="Schweinheim", minutes=5, delay=0, monitored=True, cancelled=False):
-    now = datetime.now()
-    effective_dt = {
-        "year": str(now.year), "month": str(now.month), "day": str(now.day),
-        "hour": str((now.hour + (now.minute + minutes) // 60) % 24),
-        "minute": str((now.minute + minutes) % 60),
+    """Build an EFA rapidJSON stopEvent (times in UTC, like the live API)."""
+    planned = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+    estimated = planned + timedelta(minutes=delay)
+    dep = {
+        "realtimeStatus": ["MONITORED"] if monitored else [],
+        "location": {"properties": {"platform": "A"}},
+        "departureTimePlanned": planned.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "transportation": {"number": line, "destination": {"name": direction}},
     }
-    return {
-        "realtimeTripStatus": "MONITORED" if monitored else "PLANNED",
-        "attrs": [{"name": "cancelled", "value": "true"}] if cancelled else [],
-        "dateTime": effective_dt,
-        "realDateTime": effective_dt if monitored else {},
-        "servingLine": {
-            "number": line,
-            "direction": direction,
-            "delay": str(delay) if delay else None,
-        },
-        "platformName": "A",
-    }
+    if monitored:
+        dep["departureTimeEstimated"] = estimated.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if cancelled:
+        dep["isCancelled"] = True
+    return dep
 
 
 class TestApplyFilters:
@@ -82,3 +78,19 @@ class TestParseEfa:
         raw = [_efa_dep(direction="Aschaffenburg ; Schweinheim")]
         result = _parse_efa(raw)
         assert result[0]["direction"] == "Schweinheim"
+
+    def test_delay_computed_from_estimated(self):
+        result = _parse_efa([_efa_dep(minutes=5, delay=3)])
+        assert result[0]["delay_minutes"] == 3
+        assert result[0]["platform"] == "A"
+
+    def test_cancelled_via_realtime_status_skipped(self):
+        dep = _efa_dep()
+        dep["realtimeStatus"] = ["TRIP_CANCELLED"]
+        assert _parse_efa([dep]) == []
+
+    def test_times_are_naive_local(self):
+        result = _parse_efa([_efa_dep(minutes=5)])
+        planned = datetime.fromisoformat(result[0]["planned"])
+        assert planned.tzinfo is None
+        assert 3 <= result[0]["minutes_until"] <= 5

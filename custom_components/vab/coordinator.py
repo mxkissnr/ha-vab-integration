@@ -111,29 +111,27 @@ def _apply_filters(
 
 
 def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
+    """Parse EFA rapidJSON stopEvents into departure dicts (naive local times)."""
     now = datetime.now()
     departures: list[dict[str, Any]] = []
 
     for dep in raw:
         try:
-            rt_status = dep.get("realtimeTripStatus", "UNKNOWN")
-            attrs = {a["name"]: a["value"] for a in dep.get("attrs", []) if isinstance(a, dict)}
-            if rt_status == "CANCELLED" or attrs.get("cancelled") == "true":
+            statuses = dep.get("realtimeStatus") or []
+            if dep.get("isCancelled") or any("CANCELLED" in s for s in statuses):
                 continue
+            rt_status = "MONITORED" if "MONITORED" in statuses else (statuses[0] if statuses else "UNKNOWN")
 
-            planned = _parse_efa_datetime(dep.get("dateTime", {}))
-            realtime = _parse_efa_datetime(dep.get("realDateTime", {}))
+            planned = _parse_efa_datetime(dep.get("departureTimePlanned"))
+            realtime = _parse_efa_datetime(dep.get("departureTimeEstimated"))
             effective = realtime or planned
             if effective is None:
                 continue
 
-            line = dep.get("servingLine", {})
-            direction = normalize_direction(line.get("direction", ""))
+            line = dep.get("transportation", {})
+            direction = normalize_direction(line.get("destination", {}).get("name", ""))
 
-            raw_delay = line.get("delay")
-            if raw_delay is not None:
-                delay = int(raw_delay)
-            elif planned and realtime:
+            if planned and realtime:
                 delay = int((realtime - planned).total_seconds() / 60)
             else:
                 delay = 0
@@ -141,9 +139,9 @@ def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
             minutes_until = int((effective - now).total_seconds() / 60)
 
             departures.append({
-                "line": line.get("number") or line.get("symbol", "?"),
+                "line": line.get("number") or line.get("disassembledName", "?"),
                 "direction": direction,
-                "platform": dep.get("platformName", dep.get("platform", "")),
+                "platform": dep.get("location", {}).get("properties", {}).get("platform", ""),
                 "planned": planned.isoformat() if planned else None,
                 "realtime": realtime.isoformat() if realtime else None,
                 "effective": effective.isoformat(),
@@ -161,16 +159,12 @@ def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
     return departures
 
 
-def _parse_efa_datetime(dt: dict) -> datetime | None:
-    if not dt or not dt.get("year"):
+def _parse_efa_datetime(value: str | None) -> datetime | None:
+    """ISO UTC timestamp -> naive local datetime, comparable with datetime.now()
+    (sensor attributes and stored watches stay naive, as before #33)."""
+    if not value:
         return None
     try:
-        return datetime(
-            year=int(dt["year"]),
-            month=int(dt["month"]),
-            day=int(dt["day"]),
-            hour=int(dt["hour"]),
-            minute=int(dt["minute"]),
-        )
-    except (KeyError, ValueError, TypeError):
+        return datetime.fromisoformat(value).astimezone().replace(tzinfo=None)
+    except ValueError:
         return None
