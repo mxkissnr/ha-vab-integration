@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.2.2 — 2026-10-08
+
+### Fixed
+- **Direction-filtered stops showed "Keine Abfahrten"** — after the switch to rapidJSON in v2.2.1 the
+  departure monitor returned only the next departure per line and platform, so most directions were
+  missing. Requests now ask for the full departure list (`depType=stopEvents`) ([#37](https://github.com/mxkissnr/ha-vab-integration/issues/37)).
+
 ## v2.2.1 — 2026-10-08
 
 ### Fixed

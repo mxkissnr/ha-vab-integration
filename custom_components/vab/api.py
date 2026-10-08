@@ -82,6 +82,8 @@ async def efa_fetch_raw(
         "mode": "direct",
         "deleteAssignedStops": "1",
         "ptOptionsActive": "1",
+        # Without it rapidJSON returns only one departure per line/platform.
+        "depType": "stopEvents",
     }
     if itd_date:
         params["itdDate"] = itd_date
@@ -116,6 +118,8 @@ async def efa_line_directions(
         "mode": "direct",
         "deleteAssignedStops": "1",
         "ptOptionsActive": "1",
+        # Without it rapidJSON returns only one departure per line/platform.
+        "depType": "stopEvents",
     }
     try:
         async with session.get(
