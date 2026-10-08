@@ -1000,8 +1000,15 @@ const EDITOR_STYLES = `
 //  Registration
 // ─────────────────────────────────────────────
 
-customElements.define('vab-departures-card', VabDeparturesCard);
-customElements.define('vab-departures-card-editor', VabDeparturesCardEditor);
+// Define only after HA's frontend has installed its scoped custom-element
+// registry; defining earlier lands in the native registry and Lovelace shows
+// "Custom element doesn't exist" (#39, same as glp-lovelace-card #185).
+const defineCards = () => {
+  if (!customElements.get('vab-departures-card')) customElements.define('vab-departures-card', VabDeparturesCard);
+  if (!customElements.get('vab-departures-card-editor')) customElements.define('vab-departures-card-editor', VabDeparturesCardEditor);
+};
+if (customElements.get('home-assistant')) defineCards();
+else customElements.whenDefined('home-assistant').then(defineCards);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
