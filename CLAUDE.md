@@ -106,7 +106,7 @@ OptionsFlow: **init** (lines + max departures + walk time) → **directions**
 - **EFA base URL:** `https://bahnland-bayern.de/efa` — covers all VAB bus/tram stops in Aschaffenburg
 - **DB/IRIS base URL:** `https://marudor.de/api` — real-time trains, EVA number as stop ID
 - **Stop IDs:** EFA returns numeric IDs (e.g. `80029009`) as `stateless` field in stop finder response
-- **Departure format:** `XML_DM_REQUEST` must use `outputFormat=rapidJSON` (`JSON` gets 403 since 2026-10, #33); stop finder still uses `JSON`
+- **Departure format:** `XML_DM_REQUEST` must use `outputFormat=rapidJSON` (`JSON` gets 403 since 2026-10, #33) plus `depType=stopEvents` (otherwise only one departure per line/platform, #37); stop finder still uses `JSON`
 - **Real-time fields (rapidJSON `stopEvents`):** `"MONITORED" in realtimeStatus` means live-tracked; `departureTimePlanned` / `departureTimeEstimated` are ISO UTC, delay = difference; cancelled via `isCancelled` or a `*CANCELLED` status
 - **Direction filter:** substring match (case-insensitive) so "Hbf" matches "Aschaffenburg, Hauptbahnhof"
 - **Line filter:** exact match on `transportation.number`
