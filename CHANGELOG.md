@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.2.1 — 2026-10-08
+
+### Fixed
+- **Departures no longer load (403 Forbidden)** — bahnland-bayern.de now rejects departure
+  requests with `outputFormat=JSON`, so every stop failed to set up and the card showed a
+  configuration error. Departure requests now use `rapidJSON` and the parser reads its
+  `stopEvents` format; sensor attributes are unchanged ([#33](https://github.com/mxkissnr/ha-vab-integration/issues/33)).
+
 ## v2.2.0 — 2026-08-24
 
 ### Added

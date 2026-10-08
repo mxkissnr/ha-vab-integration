@@ -70,8 +70,10 @@ async def efa_fetch_raw(
     itd_date: str | None = None,
     itd_time: str | None = None,
 ) -> list[dict[str, Any]]:
+    # bahnland-bayern.de answers outputFormat=JSON with 403 on the departure
+    # monitor; rapidJSON is still allowed (#33).
     params: dict[str, str] = {
-        "outputFormat": "JSON",
+        "outputFormat": "rapidJSON",
         "language": "de",
         "type_dm": "stop",
         "name_dm": stop_id,
@@ -95,10 +97,7 @@ async def efa_fetch_raw(
         resp.raise_for_status()
         data = await resp.json(content_type=None)
 
-    raw = data.get("departureList") or []
-    if isinstance(raw, dict):
-        raw = [raw]
-    return raw
+    return data.get("stopEvents") or []
 
 
 async def efa_line_directions(
@@ -108,7 +107,7 @@ async def efa_line_directions(
 ) -> dict[str, list[str]]:
     """Return {line: [directions]} for building filter selectors."""
     params = {
-        "outputFormat": "JSON",
+        "outputFormat": "rapidJSON",
         "language": "de",
         "type_dm": "stop",
         "name_dm": stop_id,
@@ -131,15 +130,11 @@ async def efa_line_directions(
         _LOGGER.warning("Could not load filter options for stop %s: %s", stop_id, err)
         return {}
 
-    raw = data.get("departureList") or []
-    if isinstance(raw, dict):
-        raw = [raw]
-
     line_dirs: dict[str, set[str]] = {}
-    for dep in raw:
-        info = dep.get("servingLine", {})
-        ln = (info.get("number") or info.get("symbol", "")).strip()
-        direction = normalize_direction(info.get("direction", ""))
+    for dep in data.get("stopEvents") or []:
+        info = dep.get("transportation", {})
+        ln = (info.get("number") or info.get("disassembledName", "")).strip()
+        direction = normalize_direction(info.get("destination", {}).get("name", ""))
         if ln:
             line_dirs.setdefault(ln, set())
             if direction:

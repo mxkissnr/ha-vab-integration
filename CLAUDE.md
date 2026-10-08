@@ -106,15 +106,16 @@ OptionsFlow: **init** (lines + max departures + walk time) → **directions**
 - **EFA base URL:** `https://bahnland-bayern.de/efa` — covers all VAB bus/tram stops in Aschaffenburg
 - **DB/IRIS base URL:** `https://marudor.de/api` — real-time trains, EVA number as stop ID
 - **Stop IDs:** EFA returns numeric IDs (e.g. `80029009`) as `stateless` field in stop finder response
-- **Real-time fields:** `realtimeTripStatus == "MONITORED"` means live-tracked; `servingLine.delay` is delay in minutes (string); `realDateTime` is the actual departure time
+- **Departure format:** `XML_DM_REQUEST` must use `outputFormat=rapidJSON` (`JSON` gets 403 since 2026-10, #33); stop finder still uses `JSON`
+- **Real-time fields (rapidJSON `stopEvents`):** `"MONITORED" in realtimeStatus` means live-tracked; `departureTimePlanned` / `departureTimeEstimated` are ISO UTC, delay = difference; cancelled via `isCancelled` or a `*CANCELLED` status
 - **Direction filter:** substring match (case-insensitive) so "Hbf" matches "Aschaffenburg, Hauptbahnhof"
-- **Line filter:** exact match on `servingLine.number`
+- **Line filter:** exact match on `transportation.number`
 - **Fetch limit:** always fetch `max_departures * 4` (min 30) so filters still leave enough results
 - **Overnight lookahead (EFA):** retry with next day `itdDate=YYYYMMDD&itdTime=0000`, then `0500` if still empty
 - **DB lookahead:** try 480 min, retry 1440 min if empty
 - **Coordinator update interval:** 60 seconds
 - **Coordinator reload:** `entry.add_update_listener(async_reload_entry)` in `async_setup_entry` — options changes take effect immediately without HA restart
-- **`departureList: null`:** always use `data.get("departureList") or []` (never `.get(..., [])`) — the API returns null, not missing key
+- **`stopEvents` may be null:** always use `data.get("stopEvents") or []` (never `.get(..., [])`)
 
 ## Server-side watches
 
