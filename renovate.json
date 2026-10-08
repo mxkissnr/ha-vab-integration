@@ -29,7 +29,7 @@
       "excludePackageNames": ["/^github\\/codeql-action/"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
-      "description": "This repo has no pinned pip dependency files -- every action here is CI-only, safe to automerge on green."
+      "description": "Every action here is CI-only, safe to automerge on green."
     }
   ]
 }
