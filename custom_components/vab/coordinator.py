@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import efa_fetch_raw
 from .const import (
@@ -77,15 +78,14 @@ class VabCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         except Exception as err:
             raise UpdateFailed(f"EFA-Fehler: {err}") from err
 
+        tomorrow = (dt_util.now() + timedelta(days=1)).strftime("%Y%m%d")
         if not raw_list:
-            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
             try:
                 raw_list = await efa_fetch_raw(session, self.stop_id, 100, itd_date=tomorrow, itd_time="0000")
             except Exception as err:
                 raise UpdateFailed(f"EFA-Fehler (overnight): {err}") from err
 
         if not raw_list:
-            tomorrow = (date.today() + timedelta(days=1)).strftime("%Y%m%d")
             try:
                 raw_list = await efa_fetch_raw(session, self.stop_id, 100, itd_date=tomorrow, itd_time="0500")
             except Exception as err:
@@ -112,7 +112,7 @@ def _apply_filters(
 
 def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
     """Parse EFA rapidJSON stopEvents into departure dicts (naive local times)."""
-    now = datetime.now()
+    now = local_now()
     departures: list[dict[str, Any]] = []
 
     for dep in raw:
@@ -159,12 +159,18 @@ def _parse_efa(raw: list[dict]) -> list[dict[str, Any]]:
     return departures
 
 
+def local_now() -> datetime:
+    """Current time as a naive datetime in Home Assistant's time zone."""
+    return dt_util.now().replace(tzinfo=None)
+
+
 def _parse_efa_datetime(value: str | None) -> datetime | None:
-    """ISO UTC timestamp -> naive local datetime, comparable with datetime.now()
-    (sensor attributes and stored watches stay naive, as before #33)."""
+    """ISO UTC timestamp -> naive datetime in Home Assistant's time zone,
+    comparable with local_now() (sensor attributes and stored watches stay
+    naive, as before #33)."""
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value).astimezone().replace(tzinfo=None)
+        return dt_util.as_local(datetime.fromisoformat(value)).replace(tzinfo=None)
     except ValueError:
         return None

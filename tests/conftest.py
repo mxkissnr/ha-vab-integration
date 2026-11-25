@@ -31,6 +31,9 @@ for mod in [
     "homeassistant.helpers.storage",
     "homeassistant.helpers.update_coordinator",
     "homeassistant.helpers.selector",
+    "homeassistant.helpers.typing",
+    "homeassistant.util",
+    "homeassistant.util.dt",
     "voluptuous",
     "aiohttp",
 ]:
@@ -65,3 +68,23 @@ _FakeCoordinator.__class_getitem__ = classmethod(lambda cls, item: cls)
 
 sys.modules["homeassistant.helpers.update_coordinator"].DataUpdateCoordinator = _FakeCoordinator
 sys.modules["homeassistant.helpers.update_coordinator"].UpdateFailed = Exception
+
+# homeassistant.util.dt: real functions over a switchable "configured" time zone
+from datetime import datetime as _datetime
+from zoneinfo import ZoneInfo as _ZoneInfo
+
+
+class _FakeDt:
+    DEFAULT_TIME_ZONE = _ZoneInfo("Europe/Berlin")
+
+    @classmethod
+    def now(cls):
+        return _datetime.now(cls.DEFAULT_TIME_ZONE)
+
+    @classmethod
+    def as_local(cls, value):
+        return value.astimezone(cls.DEFAULT_TIME_ZONE)
+
+
+sys.modules["homeassistant.util.dt"] = _FakeDt
+sys.modules["homeassistant.util"].dt = _FakeDt

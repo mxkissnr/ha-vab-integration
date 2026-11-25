@@ -2,7 +2,10 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.vab.coordinator import _apply_filters, _parse_efa
+from zoneinfo import ZoneInfo
+
+from custom_components.vab.coordinator import _apply_filters, _parse_efa, _parse_efa_datetime
+from homeassistant.util import dt as dt_util
 
 
 def _efa_dep(line="10", direction="Schweinheim", minutes=5, delay=0, monitored=True, cancelled=False):
@@ -94,3 +97,9 @@ class TestParseEfa:
         planned = datetime.fromisoformat(result[0]["planned"])
         assert planned.tzinfo is None
         assert 3 <= result[0]["minutes_until"] <= 5
+
+    def test_uses_home_assistant_time_zone(self, monkeypatch):
+        monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", ZoneInfo("America/New_York"))
+        assert _parse_efa_datetime("2026-07-01T12:00:00Z") == datetime(2026, 7, 1, 8, 0)
+        monkeypatch.setattr(dt_util, "DEFAULT_TIME_ZONE", ZoneInfo("Europe/Berlin"))
+        assert _parse_efa_datetime("2026-07-01T12:00:00Z") == datetime(2026, 7, 1, 14, 0)

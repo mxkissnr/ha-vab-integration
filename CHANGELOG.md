@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.3.0 — 2026-11-25
+
+### Changed
+- **Smaller recorder database** — the departure list attribute (`departures`) is no longer written
+  to the recorder every minute. The sensor state, all other attributes and the card are unchanged
+  ([#53](https://github.com/mxkissnr/ha-vab-integration/issues/53)).
+- **No more long-term statistics for the countdown** — the sensor no longer has a state class, so
+  Home Assistant stops keeping statistics for "minutes until the next departure". Old statistics
+  can be removed under Developer tools → Statistics ([#53](https://github.com/mxkissnr/ha-vab-integration/issues/53)).
+- **Uses the time zone configured in Home Assistant** for departure times, the overnight lookahead
+  and watch expiry, instead of the operating system's time zone ([#53](https://github.com/mxkissnr/ha-vab-integration/issues/53)).
+- **Actions are always available** — `vab.watch_departure` and `vab.unwatch_departure` are now
+  registered when the integration loads, not per configured stop ([#53](https://github.com/mxkissnr/ha-vab-integration/issues/53)).
+- Requires Home Assistant 2024.6 or newer.
+
 ## v2.2.3 — 2026-10-08
 
 ### Fixed
