@@ -9,6 +9,7 @@ from typing import Any
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_LEAVE_THRESHOLD, DOMAIN
 
@@ -140,7 +141,7 @@ class WatchManager:
 
     def _expired(self, watch: dict[str, Any]) -> bool:
         try:
-            return datetime.fromisoformat(watch["planned"]) < datetime.now()
+            return datetime.fromisoformat(watch["planned"]) < dt_util.now().replace(tzinfo=None)
         except (ValueError, TypeError):
             # Unparseable planned time can never match again — drop it
             return True

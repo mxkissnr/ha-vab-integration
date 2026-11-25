@@ -66,7 +66,7 @@ The card is a separate repo with its own CHANGELOG.md and git tags. Card issues 
 
 ```
 custom_components/vab/     ← HA custom integration
-  __init__.py              ← async_setup_entry / async_unload_entry + update listener
+  __init__.py              ← async_setup (watches, actions, card) / async_setup_entry / async_unload_entry
   manifest.json            ← domain, version, iot_class
   const.py                 ← all constants, API URLs, CONF_* keys
   api.py                   ← all HTTP calls: efa_stop_search, db_stop_search,
@@ -121,8 +121,9 @@ OptionsFlow: **init** (lines + max departures + walk time) → **directions**
 
 `watches.py` — `WatchManager` holds all watches across config entries, persisted via `Store`. A
 watch = `{entry_id, line, direction, planned, notify_service, leave_threshold}` + server-side
-notified-state (`notified_leave`, `notified_delay`). Registered once per `hass` instance in
-`__init__.py` (not per entry), in `hass.data[DOMAIN]["_watch_manager"]`.
+notified-state (`notified_leave`, `notified_delay`). Created once in `async_setup` in
+`__init__.py` (not per entry) and stored as `hass.data[DOMAIN]`; the actions are registered there
+too. Each entry's coordinator lives in `entry.runtime_data`.
 
 Services `vab.watch_departure` / `vab.unwatch_departure` (see `services.yaml`) resolve
 `entity_id` → `entry_id` via the entity registry. `coordinator.py` calls

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -14,7 +14,6 @@ from .const import (
     CONF_STOP_ID,
     CONF_STOP_NAME,
     CONF_WALK_TIME,
-    DOMAIN,
 )
 from .coordinator import VabCoordinator
 
@@ -24,12 +23,13 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: VabCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([VabDepartureSensor(coordinator, entry)])
+    async_add_entities([VabDepartureSensor(entry.runtime_data, entry)])
 
 
 class VabDepartureSensor(CoordinatorEntity[VabCoordinator], SensorEntity):
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    # The full departure list changes every minute; only the live state is
+    # used (by the card), so keep it out of the recorder.
+    _unrecorded_attributes = frozenset({"departures"})
     _attr_native_unit_of_measurement = "min"
     _attr_icon = "mdi:bus-clock"
 

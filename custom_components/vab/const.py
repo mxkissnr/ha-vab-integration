@@ -1,5 +1,5 @@
 DOMAIN = "vab"
-USER_AGENT = "ha-vab-integration/2.0 (https://github.com/mxkissnr/ha-vab-integration)"
+USER_AGENT = "ha-vab-integration (https://github.com/mxkissnr/ha-vab-integration)"
 
 EFA_BASE_URL = "https://bahnland-bayern.de/efa"
 EFA_DM_ENDPOINT = "/XML_DM_REQUEST"
